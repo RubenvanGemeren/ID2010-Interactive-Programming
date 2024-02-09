@@ -29,6 +29,7 @@ public interface ChatServerInterface
    * @return The server's user-friendly name.
    */
   public String getName () throws java.rmi.RemoteException;
+  public boolean containsClientName(String username) throws  RemoteException;
 
   /**
    * Used by ChatClient instances to register themselves as receivers of

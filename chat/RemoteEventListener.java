@@ -19,5 +19,6 @@ public interface RemoteEventListener
    * @param theEvent  The RemoteEvent to deliver.
    */
   void notify(RemoteEvent theEvent) throws java.rmi.RemoteException;
-  
+  String getName() throws java.rmi.RemoteException;
+
 }

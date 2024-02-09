@@ -20,6 +20,8 @@ import java.net.UnknownHostException;
 
 import java.rmi.Naming;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 import java.util.LinkedList;
@@ -61,6 +63,11 @@ public class ChatServer
   protected Vector<RemoteEventListener> clients =
     new Vector<RemoteEventListener> ();
 
+  protected Vector<String> clientNames = new Vector<>();
+   public boolean containsClientName(String username){
+     return clientNames.contains(username);
+  }
+
   /**
    * The printed name of this server instance.
    */
@@ -87,7 +94,7 @@ public class ChatServer
     String host = InetAddress.getLocalHost ().getHostName ().toLowerCase ();
 
     // Make sure the idName contains something useful
-    
+
     String idName = (name == null) ? "" : name.trim();
     if (idName.isEmpty())
       idName = System.getProperty("user.name");
@@ -102,11 +109,12 @@ public class ChatServer
       + "." + Long.toString(System.currentTimeMillis());
 
     // Register with the rmiregistry
-    
-    Naming.rebind("///" + serverName, this);
+      Registry rgsty = LocateRegistry.createRegistry(1099);
+      rgsty.rebind("///" + serverName, this);
+      Naming.rebind("///" + serverName, this);
 
     // Start the service thread.
-    
+
     new Thread (this).start ();
   }
 
@@ -124,7 +132,7 @@ public class ChatServer
   }
 
   /**
-   * Adds a message the the output queue. 
+   * Adds a message the the output queue.
    * @param msg  The text message to add.
    */
   protected void addMessage (String msg) {
@@ -158,10 +166,20 @@ public class ChatServer
    * @param rel  The RemoteEventListener implementation to add.
    */
   protected void addClient (RemoteEventListener rel) {
-    synchronized (clients) {
-      clients.add (rel);
-    }
-    System.out.println ("Added client : " + rel.toString ());
+      synchronized (clients) {
+          try{
+              clients.add(rel);
+              String username = rel.getName();
+              if (clientNames.contains(username)){
+                  username += "1";
+              }
+              say("System: New chat member : " + username);
+              clientNames.add(username);
+          } catch (java.rmi.RemoteException e){
+              System.out.println("Exception");
+          }
+      }
+      System.out.println("Added client : " + rel.toString());
   }
 
   /**
@@ -170,20 +188,44 @@ public class ChatServer
    * @param rel  The RemoteEventListener implementation to remove.
    */
   protected void removeClient (RemoteEventListener rel) {
-    synchronized (clients) {
-      clients.remove (rel);
-    }
-    System.out.println ("Removed client : " + rel.toString ());
+      synchronized (clients) {
+          clients.remove(rel);
+          try {
+              String clientName = rel.getName();
+              clientNames.remove(clientName);
+              say(clientName + "disconnected");
+          } catch (RemoteException e) {
+              System.out.println("Can't remove user from list of current users");
+          }
+      }
+      System.out.println("Removed client : " + rel.toString());
   }
 
-  /* *** Interface ChatServerInterface *** */
+    protected void changeClientName(String msg){
+        String[] changeName = msg.split(": ");
+        String oldName = changeName[1].substring(0, changeName[1].length() - 3);
+        String newName = changeName[2];
+        clientNames.remove(oldName);
+        clientNames.add(newName);
+    }
+
+
+    /* *** Interface ChatServerInterface *** */
 
   @Override
   public void say (String msg) throws RemoteException
   {
-    if (msg != null) {
-      addMessage (msg);
-    }
+      if (msg != null) {
+          if (msg.split(": ", 2)[0].equalsIgnoreCase("Username changed from")) {
+              changeClientName(msg);
+          } else if(msg.equalsIgnoreCase(".users")){
+              msg += "\n Current users: ";
+              for (String user: clientNames){
+                  msg += "\n" + user;
+              }
+          }
+          addMessage(msg);
+      }
   }
 
   @Override
@@ -275,7 +317,7 @@ public class ChatServer
     boolean halted = false;
     BufferedReader d = new BufferedReader(new InputStreamReader(System.in));
     System.out.println ("Server " + serverName + " started.");
-    
+
     while (!halted) {
       System.out.print ("Server> ");
       System.out.flush ();
@@ -342,7 +384,7 @@ public class ChatServer
       RemoteException,
       UnknownHostException
   {
-    
+
     String serverName = null;
     int state = 0;
 
