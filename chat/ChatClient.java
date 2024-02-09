@@ -69,7 +69,7 @@ public class ChatClient
      * does not send any messages for this many seconds, the user is
      * marked as away from keyboard.
      */
-    protected Integer timeOut = 30;
+    protected Integer timeOut = 10;
 
 
     protected Boolean isRunning = false;
@@ -81,7 +81,6 @@ public class ChatClient
     Timer timer = new Timer();
 
     private TimerTask task;
-
 
     /* *** Constructor *** */
 
@@ -431,8 +430,12 @@ public class ChatClient
         task = new TimerTask() {
             @Override
             public void run() {
-//                System.out.println("Timer expired after " + timeOut + " seconds. Changing status to AFK.");
-                sendToChat(myName + " is now AFK.");
+
+                if (myServer != null) {
+                    sendToChat(myName + " is now AFK.");
+                } else {
+                    System.out.println("Timer expired after " + timeOut + " seconds. Changing status to AFK.");
+                }
                 setAFK(true);
                 isRunning = false; // Reset the running flag
             }
@@ -498,10 +501,6 @@ public class ChatClient
                 // lowercase for easier matching.
 
                 String verb = argv[0].toLowerCase();
-
-//    if (!verb.isEmpty() && isAFK) {
-//        sendToChat(myName + " is no longer AFK.");
-//    }
 
                 // Accept leading commend verb abbreviations.
 
