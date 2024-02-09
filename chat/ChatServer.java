@@ -162,7 +162,7 @@ public class ChatServer
     msgCount++;
 
     // Output a server console diagnostic
-    System.out.println ("TESTMSG#" + msgCount + ":" + msg);
+    System.out.println ("MSG#" + msgCount + ":" + msg);
 
     // Wake up the distribution thread.
     wakeUp ();
