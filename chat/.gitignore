@@ -1,0 +1,11 @@
+*.idea/
+*.out/
+*.iml
+*.log
+*.class
+*.class
+*.jar
+*.zip
+*.tar.gz
+*.rar
+
