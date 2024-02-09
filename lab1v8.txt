@@ -1,0 +1,123 @@
+2024-01-25/fki Version 8 - SEVERAL CHANGES FROM VERSION 7!
+
+Programming of Interactive Systems, lab 1
+
+You are encouraged to tackle a few of the optional tasks in order to
+familiarise yourself with the software and source code.
+
+
+Optional tasks for the chat-programs.
+
+* The output from the .list command can be a bit overwhelming,
+  especially if there are errors when contacting services. Make it
+  more user-friendly so that it is easier to see:
+
+  - Which servers are viable (i.e. can be connected to)
+
+  - A unique argument to the .connect command
+
+* Add to the client the option to provide a sender name on the
+  commandline.
+
+
+Mandatory tasks, choose one:
+
+1 Echo Cancellation
+
+  Prevent the client from displaying the text it has sent. The server
+  can do this filtering easily, but consider that the return of a text
+  to the client is a valuable acknowledgement that the server actually
+  delivered the text, and a diagnostic on how long it took to do so.
+  Hint: you cannot rely on the client's user name string, as this can
+  be set to anything on any client.
+
+2 User Presence Notification
+
+  Enable all clients connected to a service to see whenever a client
+  joins or leaves the chat. Add a user command to the client that
+  allows the user to list users currently joined to the service. If
+  the client uses the .name command, this should be seen by all
+  connected clients.
+
+  With that done, then also do one of:
+
+  2a Make the user information useful to the maintainer of the chat
+     service, so that the chat server console prints when someone
+     connects and disconnects. In the case of a disconnect, also print
+     session time (time between connect and disconnect), and how many
+     messages or characters that user has sent.
+
+  2b Give the client user the ability to block a user (that user's
+     texts are not displayed by the client doing the
+     blocking). Blocked users should be indicated in the user name
+     list. It must not be possible to bypass a block by changing the
+     name with the .name command. Blocks are not required to be
+     maintained across client restarts.
+
+3 Away From Keyboard (AFK) Detection
+
+  Add an AFK (Away From Keyboard) detector that automatically notifies
+  a user when someone has been inactive for a certain period of
+  time. The message should be asynchronously generated when the
+  timeout period expires.
+
+  Design decisions: Should the detector be in the server or in the
+  client? If it is in the client, is it each client detecting the
+  behaviour of other clients, or is each client detecting and
+  announcing its own behaviour? Should it be possible for the user to
+  turn off the detector? How long should the timeout period be?
+  Should it be the same for everyone or should it be possible to
+  customize in each client?
+
+4 RMI Registry Host Parameter
+
+  Add a commandline option (e.g. -r) to the client and server so that
+  it is possible to specify a non-default host and port for the
+  rmiregistry server. It is probably easier to use IP-numbers instead
+  of hostnames. Experiment with connecting a client and server on two
+  different computers (this may work in a home network but not on the
+  KTH campus network).
+
+5 File Transfer
+
+  Develop the client and service to allow the sending and receiving of
+  files. Consider the impact on security. In particular, each user
+  should be able to reject an offered file.
+
+6 Chat Bot
+
+  Implement a chat-bot (a modified client) that can participate in a
+  discussion with two or more other users. This means that it must be
+  able to recognize that different people are talking, and be able to
+  direct its output at a single person, or everyone. The chat-bot does
+  not have to be intelligent or even clever. For inspiration, have a
+  look at https://github.com/codeanticode/eliza. (If you do this,
+  connect two chat-bots to the same server and watch what happens.)
+
+7 Super-Server
+
+  Create a super-server that connects like a client to ordinary
+  servers. Have the super-server join with all ordinary servers to
+  create the illusion that all users are in the same chat.
+  Hint: the selective flooding routing algorithm.
+
+
+
+The work is preferably done in groups of two, but singleton groups are
+allowed.
+
+The group should do the following:
+
+- Implement your selected task on the provided software.
+
+- Write a short report (2-3 pgs) in which you:
+
+	* put all author names on the title page
+
+  	* indicate the choosen task
+
+	* document your design decisions and implementation strategy
+
+- Upload the report in Canvas in the appropriate assignment.
+
+- Prepare a short oral presentation and demo of the running system.
