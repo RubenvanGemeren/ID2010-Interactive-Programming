@@ -2,7 +2,8 @@
 *.out/
 *.iml
 *.log
-*.class
+chat/*.class
+tag/*.class
 *.jar
 *.zip
 *.tar.gz
