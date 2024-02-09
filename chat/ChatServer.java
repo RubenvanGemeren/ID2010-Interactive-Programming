@@ -108,10 +108,30 @@ public class ChatServer
       + "." + idName + "@" + host
       + "." + Long.toString(System.currentTimeMillis());
 
-    // Register with the rmiregistry
-      Registry rgsty = LocateRegistry.createRegistry(1099);
-      rgsty.rebind("///" + serverName, this);
-      Naming.rebind("///" + serverName, this);
+
+      String osName = System.getProperty("os.name").toLowerCase();
+
+      if (osName.contains("windows")) {
+          System.out.println("Running on Windows");
+
+          Naming.rebind("///" + serverName, this);
+
+      } else if (osName.contains("linux")) {
+          System.out.println("Running on Linux");
+
+          // Register with the rmiregistry
+          Registry rgsty = LocateRegistry.createRegistry(1099);
+          rgsty.rebind("///" + serverName, this);
+          Naming.rebind("///" + serverName, this);
+
+      } else {
+          System.out.println("Running on another operating system: " + osName);
+
+          // Register with the rmiregistry
+          Registry rgsty = LocateRegistry.createRegistry(1099);
+          rgsty.rebind("///" + serverName, this);
+          Naming.rebind("///" + serverName, this);
+      }
 
     // Start the service thread.
 
