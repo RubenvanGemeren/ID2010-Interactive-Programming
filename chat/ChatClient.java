@@ -69,11 +69,12 @@ public class ChatClient
      * does not send any messages for this many seconds, the user is
      * marked as away from keyboard.
      */
-    protected Integer timeOut = 10;
+    protected Integer timeOut = 120;
 
 
     protected Boolean isRunning = false;
 
+    protected boolean waitingForNameFromServer = false;
 
     /**
      * The timer object that is used to schedule the user's status change
@@ -133,6 +134,9 @@ public class ChatClient
     public void notify(RemoteEvent rev) throws RemoteException {
         if (rev instanceof ChatNotification) {
             ChatNotification chat = (ChatNotification) rev;
+            if (waitingForNameFromServer){
+                getNameFromServer(chat);
+            }
             System.out.println(chat.getSequenceNumber() + " : " +
                     chat.getText());
         }
@@ -233,7 +237,7 @@ public class ChatClient
             if (service instanceof ChatServerInterface) {
                 myServer = (ChatServerInterface) service;
                 myServer.register(this);
-                serverContainsName();
+                waitingForNameFromServer = true;
                 System.out.printf("[Connected to %s]\n", selectedServiceName);
             }
         } catch (Exception e) {
@@ -268,18 +272,24 @@ public class ChatClient
 
         if (myServer != null) {
             try {
-                serverContainsName();
                 myServer.say("Username changed from: " + oldName + " to: " + myName);
+                waitingForNameFromServer = true;
             } catch (RemoteException e) {
                 System.out.println("[Sending to server failed]");
             }
         }
     }
 
-    protected void serverContainsName() throws RemoteException {
-        if (myServer.containsClientName(myName)) {
-            System.out.println("Server contains already a user with the same name. Changed Username to: " + myName + "1");
-            myName += "1";
+    protected void getNameFromServer(ChatNotification chat) {
+        if (chat.getText().startsWith("System: New chat member: " + myName) || chat.getText().startsWith("Username changed from: ")) {
+            waitingForNameFromServer = false;
+            String[] substring = chat.getText().split(": ");
+            myName = substring[2];
+            if (substring.length > 3){
+                for (int i = 3; i < substring.length; i++) {
+                    myName += ": " + substring[i];
+                }
+            }
         }
     }
 
@@ -352,8 +362,8 @@ public class ChatClient
             ".disconnect        Break the connection to the server",
             ".quit              Exit the client",
             ".help              This text",
-            ".users             Lists all current members of the chat."
-
+            ".users             Lists all current members of the chat.",
+            ".myname            Prints your name in the chat"
     };
 
     /**
@@ -523,11 +533,14 @@ public class ChatClient
                     showHelp(argv);
                     isAFK = false;
                 } else if ("users".startsWith(verb)) {
-                    if (myServer != null){
+                    if (myServer != null) {
                         sendToChat(arg);
                     } else {
                         System.out.println("Please connect to a server before using this command.");
                     }
+                    isAFK = false;
+                } else if ("myname".startsWith(verb)) {
+                    System.out.println(myName);
                     isAFK = false;
                 } else {
                     System.out.println("[" + verb + ": unknown command]");
