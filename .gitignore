@@ -1,3 +1,10 @@
 *.idea/
 *.out/
 *.iml
+*.log
+*.class
+*.jar
+*.zip
+*.tar.gz
+*.rar
+
