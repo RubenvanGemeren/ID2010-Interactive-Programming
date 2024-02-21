@@ -4,13 +4,11 @@
 
 import java.net.InetAddress;
 import java.rmi.Naming;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.UUID;
 
 /**
  * The Bailiff is an RMI service that provides an execution
@@ -38,7 +36,7 @@ public class Bailiff
     BailiffInterface // for clients
 {
   // When debug is true, trace and diagnostic messages are printed.
-  protected boolean debug = false;
+  protected boolean debug = true;
 
   // The java.util.logging.Logger is provided for tracking and
   // forensic analysis.
@@ -65,6 +63,16 @@ public class Bailiff
   // Registration name with the rmiregistry
   protected String serviceName = null;
 
+  // Present players
+//    protected ArrayList<UUID> players = new ArrayList<>();
+
+
+  // Map to store Agitator instances with the associated object as the key
+  protected Map<UUID, AgitatorInfo> agitatorMap = new HashMap<>();
+
+    // Has tagged player
+    protected Boolean hasTaggedPlayer = false;
+
   /**
    * If debug is enabled, prints a message on stdout.
    * @s The message string
@@ -75,30 +83,51 @@ public class Bailiff
     }
   }
 
+  // Custom class to encapsulate multiple items
+  public class AgitatorInfo {
+    private UUID externalId;
+    private  String name;
+    private Agitator agitator;
+    private boolean isTaggedPlayer;
+    private boolean isLocked;
+
+    public AgitatorInfo(UUID externalId, String name, Agitator agitator, boolean isTaggedPlayer, boolean isLocked) {
+      this.externalId = externalId;
+      this.name = name;
+      this.agitator = agitator;
+      this.isTaggedPlayer = isTaggedPlayer;
+      this.isLocked = isLocked;
+    }
+
+    // Getter methods...
+  }
+
   /* ================ A g i t a t o r ================ */
-  
+
   /**
    * Class Agitator wraps and encapsulates the remote object to which the
    * Bailiff lends a thread of execution.
    */
-  private class Agitator extends Thread {
+  public class Agitator extends Thread {
 
+    protected UUID myId; // The id of this Agitator
     protected Object myObj;	// The client object
     protected String myCb;	// The name of the entry point method
     protected Object [] myArgs;	// Arguments to the entry point method
     protected java.lang.reflect.Method myMethod; // Ref. to entry point method
     protected Class [] myParms; // Class reflection of arguments
-    
+
     /**
-     * Creates a new Agitator by copying th references to the client
+     * Creates a new Agitator by copying the references to the client
      * object, the name of the entry method and the arguments to
      * the entry method.
      * @param obj  The client object, holding the method to execute
      * @param cb   The name of the entry point method (callback)
      * @param args Arguments to the entry point method
      */
-    public Agitator (Object obj, String cb, Object [] args)
+    public Agitator (UUID id, Object obj, String cb, Object [] args)
     {
+      myId   = id;
       myObj  = obj;
       myCb   = cb;
       myArgs = args;
@@ -108,15 +137,17 @@ public class Bailiff
       // the parameter signature. So, the myParms[] array is loaded with
       // the class of each entry point parameter.
 
-      if (0 < args.length) {
-	myParms = new Class [args.length];
-	for (int i = 0; i < args.length; i++) {
-	  myParms[i] = args[i].getClass ();
-	}
-      }
-      else {
-	myParms = null;
-      }
+
+        debugMsg("Agitator arguments: " + Arrays.toString(args));
+
+        if (0 < args.length) {
+	        myParms = new Class [args.length];
+            for (int i = 0; i < args.length; i++) {
+                myParms[i] = args[i].getClass ();
+            }
+        } else {
+            myParms = null;
+          }
     }
 
     /**
@@ -139,16 +170,16 @@ public class Bailiff
     public void run ()
     {
       try {
-	myMethod.invoke (myObj, myArgs);
+	    myMethod.invoke (myObj, myArgs);
       }
       catch (Throwable t) {
-	log.severe (t.getMessage());
+	    log.severe (t.getMessage());
       }
     }
   } // class Agitator
 
   /* ================ B a i l i f f I n t e r f a c e ================ */
-  
+
   /**
    * Returns a string acknowledging the host, IP address, room and user
    * fields of this Bailiff instance. This method can be used to debug
@@ -159,13 +190,22 @@ public class Bailiff
    */
   public String ping () throws java.rmi.RemoteException
   {
-    log.fine ("ping");
+    System.out.println ("pinging...");
 
-    return 
+    return
       String.format("Ping response from Bailiff %s on host %s [%s]",
 		    id,
 		    myHostName,
 		    myInetAddress.getHostAddress ());
+  }
+
+  public Boolean hasPlayers() throws java.rmi.RemoteException {
+//    return !players.isEmpty();
+    return !agitatorMap.isEmpty();
+  }
+
+  public Boolean hasTaggedPlayer() throws java.rmi.RemoteException {
+    return hasTaggedPlayer;
   }
 
   /**
@@ -204,7 +244,7 @@ public class Bailiff
    * @throws NoSuchMethodException Thrown if the specified entry method
    * does not exist with the expected signature.
    */
-  public void migrate (Object obj, String cb, Object [] args)
+  public void migrate (Object obj, String cb, Object [] args, Boolean isTaggedPlayer, UUID externalId)
     throws
       java.rmi.RemoteException, NoSuchMethodException
   {
@@ -213,10 +253,61 @@ public class Bailiff
 			   obj.toString(),
 			   cb,
 			   Arrays.toString(args)));
-    
-    Agitator agt = new Agitator (obj, cb, args);
+
+    if (isTaggedPlayer) {
+        hasTaggedPlayer = true;
+    }
+
+    // Create an Agitator instance and start it
+    Agitator agt = new Agitator (externalId, obj, cb, args);
+
+    AgitatorInfo agtInfo = new AgitatorInfo(agt.myId, obj.toString(), agt, isTaggedPlayer, false);
+
+    // Check if the object is already in the list of players
+    if (agitatorMap.containsKey(agt.myId)) {
+      log.fine("Object already in the list of players");
+    } else {
+      // Add the object to the list of players
+//      players.add(agt.myId);
+      // Add the object to the map of players and agitators
+      agitatorMap.put(agt.myId, agtInfo);
+      log.fine("Object added to the list of players, current players: " + players);
+    }
+
     agt.initialize ();
     agt.start ();
+  }
+
+  public Boolean notify(Test_player obj, String message) throws java.rmi.RemoteException, NoSuchMethodException {
+    debugMsg(String.format("notify from obj=%s", message));
+
+    if (message.equals("leaving")) {
+      // Get the UUID of the object
+      UUID id = obj.externalId;
+
+      // Get the agitator from the agitatorMap
+      AgitatorInfo agtInfo = agitatorMap.get(id);
+
+      // Kill (interrupt) agitator thread from the agitatorMap
+      agtInfo.agitator.interrupt();
+
+      // remove the player from the list of players (old)
+      // players.remove(id);
+
+      // remove the player from the map of players and agitators
+      agitatorMap.remove(id);
+
+      debugMsg("Player removed from the list of players, current agitatorMap: " + agitatorMap);
+
+      // Let the player know that it has been removed and can migrate to another Bailiff
+      return true;
+
+    } else {
+      debugMsg("Unknown message, current agitatorMap: " + agitatorMap);
+
+      // Let the player know that it has not been removed and cannot migrate to another Bailiff
+      return false;
+    }
   }
 
   /* ================ C o n s t r u c t o r ================ */
@@ -256,12 +347,10 @@ public class Bailiff
     this.info = (info != null) ? info : this.info;
 
     // Retrieve host and network information
-
     myInetAddress = java.net.InetAddress.getLocalHost ();
     myHostName    = myInetAddress.getHostName ().toLowerCase ();
 
     // Create and initialize the property map
-
     propertyMap =
       Collections.synchronizedMap (new HashMap<String,String> ());
 
@@ -271,19 +360,16 @@ public class Bailiff
     propertyMap.put ("hostaddress", myInetAddress.getHostAddress ());
 
     // Make a log entry that we are starting.
-
     log.info(String.format("STARTING id=%s info=%s host=%s debug=%b",
 			   id, info, myHostName, debug));
 
     // Compose the service name under which to register
-
     serviceName =
       getClass().getName()
       + "." + id
       + "." + Integer.toString((int)(Math.random() * (float) 0x7FFF_FFFF));
 
     // Register with the default rmiregistry
-
     Naming.rebind("///" + serviceName, this);
 
     log.info(String.format("Registered as %s", serviceName));
@@ -332,22 +418,22 @@ public class Bailiff
 
   private static Level setLoglevelFromCmdLine(String s) {
     switch (Integer.parseInt(s)) {
-    case 0: return Level.OFF;
-    case 1: return Level.SEVERE;
-    case 2: return Level.WARNING;
-    case 3: return Level.INFO;
-    case 4: return Level.CONFIG;
-    case 5: return Level.FINE;
-    case 6: return Level.FINER;
-    case 7: return Level.FINEST;
-    default: return Level.ALL;
+        case 0: return Level.OFF;
+        case 1: return Level.SEVERE;
+        case 2: return Level.WARNING;
+        case 3: return Level.INFO;
+        case 4: return Level.CONFIG;
+        case 5: return Level.FINE;
+        case 6: return Level.FINER;
+        case 7: return Level.FINEST;
+        default: return Level.ALL;
     }
   }
 
   /* ================ m a i n ================ */
 
   public static void main (String [] argv)
-    throws 
+    throws
       java.net.UnknownHostException,
       java.rmi.RemoteException,
       java.io.IOException
@@ -359,9 +445,9 @@ public class Bailiff
     int state = 0;
 
     for (String av : argv) {
-      
+
       switch (state) {
-	
+
       case 0:
 	if (av.equals("?") || av.equals("-h") || av.equals("-help")) {
 	  showUsage();
