@@ -265,8 +265,9 @@ public class Test_player_it implements Serializable
 
               // Before migrating to a new bailiff as a tagged player, try to tag a player at the current bailiff
               // If this fails, we will try to migrate to a new bailiff as a (still) tagged player
-              if (tagged) {
-                tryTagging(currentBailiff);
+              // If the tagging is successful, we will migrate to a new bailiff as a non-tagged player
+              if (tagged && currentBailiff != null) {
+                tagged = !tryTagging(currentBailiff);
               }
                 
               // Determine if we will migrate to the selected Bailiff
@@ -362,17 +363,11 @@ public class Test_player_it implements Serializable
     try {
       debugMsg("Asking the Bailiff to tag a player");
 
-      // If the Bailiff successfully tags a player, we are no longer tagged
-      if (currentBailiff.tagPlayer(externalId)) {
-        tagged = false;
-      } else {
-        debugMsg("The Bailiff did not tag a player");
-        tagged = true;
-      }
-
       return currentBailiff.tagPlayer(externalId);
+
     } catch (RemoteException | NoSuchMethodException e) {
       debugMsg("Failed to tag player");
+
       return false;
     }
   }
