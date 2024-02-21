@@ -233,7 +233,7 @@ Tag is of course the tagging action itself. It could look something
 like this:
 
 
-  // In this code example, AgentID shold be replaced with whatever is
+  // In this code example, AgentID should be replaced with whatever is
   // chosen as the identifier datatype. The class java.util.UUID is one
   // possible choice. A 32-bit random integer probably also works.
 

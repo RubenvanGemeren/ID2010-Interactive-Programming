@@ -261,17 +261,21 @@ public class Bailiff
     // Create an Agitator instance and start it
     Agitator agt = new Agitator (externalId, obj, cb, args);
 
+    // Create an AgitatorInfo instance to store the agitator and the object
     AgitatorInfo agtInfo = new AgitatorInfo(agt.myId, obj.toString(), agt, isTaggedPlayer, false);
 
     // Check if the object is already in the list of players
     if (agitatorMap.containsKey(agt.myId)) {
       log.fine("Object already in the list of players");
     } else {
+
       // Add the object to the list of players
-//      players.add(agt.myId);
+      // players.add(agt.myId);
+
       // Add the object to the map of players and agitators
       agitatorMap.put(agt.myId, agtInfo);
-      log.fine("Object added to the list of players, current players: " + players);
+
+      log.fine("Object added to the list of players, current agitatorMap: " + agitatorMap);
     }
 
     agt.initialize ();
@@ -281,32 +285,55 @@ public class Bailiff
   public Boolean notify(Test_player obj, String message) throws java.rmi.RemoteException, NoSuchMethodException {
     debugMsg(String.format("notify from obj=%s", message));
 
-    if (message.equals("leaving")) {
-      // Get the UUID of the object
-      UUID id = obj.externalId;
+    // Get the UUID of the object
+    UUID id = obj.externalId;
 
-      // Get the agitator from the agitatorMap
-      AgitatorInfo agtInfo = agitatorMap.get(id);
+    // Check if object exists in the list of players
+    // If it does not, we should still migrate the object to this Bailiff,
+    // otherwise we need to remove the object from the list of players
+    if (!agitatorMap.containsKey(id)) {
+      debugMsg("Object not in the list of players " + agitatorMap + " - migrating the object to the Bailiff");
 
-      // Kill (interrupt) agitator thread from the agitatorMap
-      agtInfo.agitator.interrupt();
-
-      // remove the player from the list of players (old)
-      // players.remove(id);
-
-      // remove the player from the map of players and agitators
-      agitatorMap.remove(id);
-
-      debugMsg("Player removed from the list of players, current agitatorMap: " + agitatorMap);
-
-      // Let the player know that it has been removed and can migrate to another Bailiff
+      // Let the player know the player can migrate to this bailiff
       return true;
+    }
 
-    } else {
-      debugMsg("Unknown message, current agitatorMap: " + agitatorMap);
+    // Lock the object in question
+    agitatorMap.get(id).isLocked = true;
 
-      // Let the player know that it has not been removed and cannot migrate to another Bailiff
-      return false;
+    debugMsg("Object locked, current object: " + agitatorMap.get(id));
+
+    // Add try catch block to handle the exception
+    try {
+        // Get the agitator from the agitatorMap
+        AgitatorInfo agtInfo = agitatorMap.get(id);
+
+        if (message.equals("leaving")) {
+          // Kill (interrupt) agitator thread from the agitatorMap
+          agtInfo.agitator.interrupt();
+
+          // remove the player from the map of players and agitators
+          agitatorMap.remove(id);
+
+          debugMsg("Player removed from the list of players, current agitatorMap: " + agitatorMap);
+
+          // Let the player know that it has been removed and can migrate to another Bailiff
+          return true;
+        } else {
+          // Unlock the object in question
+          agtInfo.isLocked = false;
+
+          debugMsg("Object unlocked, current object: " + agtInfo + " - migrating request denied");
+
+          // Let the player know that it has not been removed and cannot migrate to another Bailiff
+          return false;
+        }
+
+    } catch (Exception e) {
+        debugMsg("Exception: " + e.toString() + " occurred, notification failed");
+
+        // Let the player know that it has not been removed and cannot migrate to another Bailiff
+        return false;
     }
   }
 
