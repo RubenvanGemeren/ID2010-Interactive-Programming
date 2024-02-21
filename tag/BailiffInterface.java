@@ -60,10 +60,15 @@ public interface BailiffInterface
       java.lang.NoSuchMethodException;
 
 
-  public Boolean notify(Test_player obj, String message)
+  public Boolean notify(Object obj, String message)
     throws
       java.rmi.RemoteException,
       java.lang.NoSuchMethodException;
+
+    public Boolean tagPlayer(UUID previousTaggedPlayer)
+      throws
+        java.rmi.RemoteException,
+        java.lang.NoSuchMethodException;
 
 
 }

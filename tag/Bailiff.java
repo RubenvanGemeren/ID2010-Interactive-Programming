@@ -4,6 +4,7 @@
 
 import java.net.InetAddress;
 import java.rmi.Naming;
+import java.rmi.RemoteException;
 import java.util.*;
 
 import java.util.logging.Level;
@@ -282,11 +283,27 @@ public class Bailiff
     agt.start ();
   }
 
-  public Boolean notify(Test_player obj, String message) throws java.rmi.RemoteException, NoSuchMethodException {
+  /* ================ N o t i f y ================ */
+  public Boolean notify(Object obj, String message) throws RemoteException, NoSuchMethodException {
     debugMsg(String.format("notify from obj=%s", message));
 
+    // Cast the object to the correct class (only for testing purposes only)
+    UUID id = null;
+    switch (obj.getClass().getName()) {
+      case "Test_player_it":
+        Test_player_it testPlayerIt = (Test_player_it) obj;
+
+        // Get the UUID of the object
+        id = testPlayerIt.externalId;
+      default:
+        Test_player testPlayer = (Test_player) obj;
+
+        // Get the UUID of the object
+        id = testPlayer.externalId;
+    }
+
     // Get the UUID of the object
-    UUID id = obj.externalId;
+    // UUID id = testPlayer.externalId;
 
     // Check if object exists in the list of players
     // If it does not, we should still migrate the object to this Bailiff,
@@ -337,6 +354,37 @@ public class Bailiff
     }
   }
 
+
+
+  /* ================ T a g P l a y e r ================ */
+  public Boolean tagPlayer(UUID previousTaggedPlayer) throws RemoteException {
+    // Check if there are any players
+    if (agitatorMap.isEmpty()) {
+      return false;
+    }
+
+    // Get the first player in the list of players that is not locked
+    UUID id = agitatorMap.keySet().stream().filter(key -> !agitatorMap.get(key).isLocked).findFirst().orElse(null);
+
+    // Get the agitator from the agitatorMap
+    AgitatorInfo agtInfo = agitatorMap.get(id);
+
+    // Check if the player is locked
+    if (agtInfo.isLocked) {
+      return false;
+    }
+
+    // Set the player as the tagged player
+    agtInfo.isTaggedPlayer = true;
+
+    // Set the tagged player as the tagged player
+    hasTaggedPlayer = true;
+
+    // Remove tag from the previous tagged player
+    agitatorMap.get(previousTaggedPlayer).isTaggedPlayer = false;
+
+    return true;
+  }
   /* ================ C o n s t r u c t o r ================ */
 
   /**
