@@ -70,5 +70,20 @@ public interface BailiffInterface
         java.rmi.RemoteException,
         java.lang.NoSuchMethodException;
 
+    public Boolean isTagged(UUID id)
+      throws
+        java.rmi.RemoteException,
+        java.lang.NoSuchMethodException;
+
+
+    public void lock(UUID id)
+        throws
+            java.rmi.RemoteException,
+            java.lang.NoSuchMethodException;
+
+    public void unlock(UUID id)
+        throws
+            java.rmi.RemoteException,
+            java.lang.NoSuchMethodException;
 
 }

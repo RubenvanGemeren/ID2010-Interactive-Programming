@@ -192,9 +192,8 @@ public class Test_player_it implements Serializable
    * the Bailiff he is already in.
    */
   public void topLevel ()
-    throws
-      java.io.IOException
-  {
+          throws
+          java.io.IOException, NoSuchMethodException {
     jumpCount++;
 
     // Loop forever until we have successfully jumped to a Bailiff.
@@ -206,6 +205,11 @@ public class Test_player_it implements Serializable
       debugMsg("Is here - entering restraint sleep.");
       snooze(restraintSleepMs);
       debugMsg("Leaving restraint sleep.");
+
+      // If we are in a bailiff, figure out if we are tagged
+      if (currentBailiff != null) {
+        tagged = didIGetTagged(currentBailiff);
+      }
 
       // Try to find Bailiffs.
       // The loop keeps going until we get a non-empty list of good names.
@@ -264,7 +268,6 @@ public class Test_player_it implements Serializable
               if (tagged) {
                 tryTagging(currentBailiff);
               }
-              
                 
               // Determine if we will migrate to the selected Bailiff
               willMigrate = willMigrate(chosenBailiff);
@@ -282,12 +285,25 @@ public class Test_player_it implements Serializable
                   if (currentBailiff != null) {
                     debugMsg("Letting the Bailiff know that I am migrating");
 
+                    // Lock the player before migrating
+                    currentBailiff.lock(externalId);
+
+                    tagged = didIGetTagged(currentBailiff);
+
                     // Notify the Bailiff that we are leaving and ask if we can migrate
                     canMigrate = currentBailiff.notify(this, "leaving");
+
+                    // Note: We only need to unlock the player if we are not allowed to migrate
+                    // If we are allowed to migrate, the player will be deleted from the Bailiff
+                    // thus not needing to be unlocked
                   }
 
                   // If the Bailiff allows us to migrate, do so
                   if (canMigrate) {
+                    // Before migrating, update our current Bailiff
+                    currentBailiff = chosenBailiff;
+
+                    // Migrate to the chosen Bailiff
                     chosenBailiff.migrate(this, "topLevel", new Object[]{}, tagged, externalId);
 
                     debugMsg("Has migrated");
@@ -295,6 +311,11 @@ public class Test_player_it implements Serializable
                     return; // SUCCESS, we are done here
                   } else {
                     debugMsg("The Bailiff did not allow me to migrate");
+
+                    // Unlock the player before trying to migrate again,
+                    // this is not necessary if we are allowed to migrate
+                    currentBailiff.unlock(externalId);
+
                     // The Bailiff did not allow us to migrate, remove it from the list of good names
                     goodNames.clear();
                     badNames.clear();
@@ -356,6 +377,11 @@ public class Test_player_it implements Serializable
     }
   }
 
+  private Boolean didIGetTagged(BailiffInterface currentBailiff) throws RemoteException, NoSuchMethodException {
+    return currentBailiff.isTagged(externalId);
+  }
+
+
   private boolean willMigrate(BailiffInterface bailiff) throws RemoteException {
     // If player is tagged and the Bailiff has players, migrate
     if (tagged && bailiff.hasPlayers()) {
@@ -392,9 +418,8 @@ public class Test_player_it implements Serializable
   // =============================================================
   
   public static void main (String [] argv)
-    throws
-      java.io.IOException, ClassNotFoundException
-  {
+          throws
+          java.io.IOException, ClassNotFoundException, NoSuchMethodException {
 
     // Make a new Test Player and configure it from commandline arguments.
     

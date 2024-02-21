@@ -315,8 +315,10 @@ public class Bailiff
       return true;
     }
 
-    // Lock the object in question
-    agitatorMap.get(id).isLocked = true;
+    // Lock the object in question (if it isn't already locked
+    if (!agitatorMap.get(id).isLocked) {
+      lock(id);
+    }
 
     debugMsg("Object locked, current object: " + agitatorMap.get(id));
 
@@ -338,7 +340,7 @@ public class Bailiff
           return true;
         } else {
           // Unlock the object in question
-          agtInfo.isLocked = false;
+          unlock(id);
 
           debugMsg("Object unlocked, current object: " + agtInfo + " - migrating request denied");
 
@@ -348,6 +350,9 @@ public class Bailiff
 
     } catch (Exception e) {
         debugMsg("Exception: " + e.toString() + " occurred, notification failed");
+
+        // Unlock the object in question
+        unlock(id);
 
         // Let the player know that it has not been removed and cannot migrate to another Bailiff
         return false;
@@ -385,6 +390,27 @@ public class Bailiff
 
     return true;
   }
+
+  /* ================ I s T a g g e d ================ */
+    public Boolean isTagged(UUID id) throws RemoteException {
+        return agitatorMap.get(id).isTaggedPlayer;
+    }
+
+  /* ================ L o c k ================ */
+    public void lock(UUID id) throws RemoteException {
+      if (agitatorMap.containsKey(id)) {
+        // Lock the object in question
+        agitatorMap.get(id).isLocked = true;
+      }
+    }
+
+  /* ================ U n l o c k ================ */
+    public void unlock(UUID id) throws RemoteException {
+      if (agitatorMap.containsKey(id)) {
+        // Unlock the object in question
+        agitatorMap.get(id).isLocked = false;
+      }
+    }
   /* ================ C o n s t r u c t o r ================ */
 
   /**
