@@ -55,9 +55,9 @@ public interface BailiffInterface
    * 
    */
   public void migrate (Object obj, String cb, Object [] args, Boolean isTaggedPlayer, UUID externalId)
-    throws
-      java.rmi.RemoteException,
-      java.lang.NoSuchMethodException;
+          throws
+          java.rmi.RemoteException,
+          java.lang.NoSuchMethodException;
 
 
   public Boolean notify(Object obj, String message)

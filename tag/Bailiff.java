@@ -2,6 +2,7 @@
 // 2024-01-25/fki Refactored for v14 - No Jini, just rmiregistry
 // 2018-08-16/fki Refactored for v13
 
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
@@ -83,6 +84,30 @@ public class Bailiff
       System.out.println (s);
     }
   }
+  /**
+   * If debug is enabled, prints a message on stdout.
+   * @s The message string
+   */
+  protected void debugStatus () throws RemoteException {
+    if (debug) {
+      // Create list of players info
+      StringBuilder playersInfo = new StringBuilder();
+
+      // Loop through the list of players and print out the status of each player
+      for (Map.Entry<UUID, AgitatorInfo> entry : agitatorMap.entrySet()) {
+        UUID key = entry.getKey();
+        AgitatorInfo value = entry.getValue();
+        playersInfo.append("Player: ").append(key).append(" - ").append(value).append("\n");
+      }
+
+      // Print out the current status of the bailiff, including the list of players
+      System.out.println("---- B a i l i f f s t a t u s ---- \n" +
+              " Time: " + new Date() + "\n" +
+              " Agitator map: " + playersInfo +
+              " Has tagged player: " + hasTaggedPlayer + "\n" +
+              "----------------------------------" + "\n");
+    }
+  }
 
   // Custom class to encapsulate multiple items
   public class AgitatorInfo {
@@ -100,7 +125,18 @@ public class Bailiff
       this.isLocked = isLocked;
     }
 
-    // Getter methods...
+    // In the AgitatorInfo class
+    @Override
+    public String toString() {
+      // Customize the string representation as per your requirement
+      return "AgitatorInfo{" +
+              "External ID ='" + this.externalId + '\'' +
+              ", Name ='" + this.name + '\'' +
+              ", Agitator ='" + this.agitator + '\'' +
+              ", Tagged ='" + this.isTaggedPlayer + '\'' +
+              ", Locked ='" + this.isLocked + '\'' +
+              '}';
+    }
   }
 
   /* ================ A g i t a t o r ================ */
@@ -246,9 +282,8 @@ public class Bailiff
    * does not exist with the expected signature.
    */
   public void migrate (Object obj, String cb, Object [] args, Boolean isTaggedPlayer, UUID externalId)
-    throws
-      java.rmi.RemoteException, NoSuchMethodException
-  {
+          throws
+          java.rmi.RemoteException, NoSuchMethodException {
 
     log.fine(String.format("migrate obj=%s cb=%s args=%s",
 			   obj.toString(),
@@ -278,6 +313,9 @@ public class Bailiff
 
       log.fine("Object added to the list of players, current agitatorMap: " + agitatorMap);
     }
+
+    // Show status of the bailiff
+    debugStatus();
 
     agt.initialize ();
     agt.start ();
@@ -334,13 +372,17 @@ public class Bailiff
           // remove the player from the map of players and agitators
           agitatorMap.remove(id);
 
-          debugMsg("Player removed from the list of players, current agitatorMap: " + agitatorMap);
+          // Show status of the bailiff
+          debugStatus();
 
           // Let the player know that it has been removed and can migrate to another Bailiff
           return true;
         } else {
           // Unlock the object in question
           unlock(id);
+
+          // Show status of the bailiff
+          debugStatus();
 
           debugMsg("Object unlocked, current object: " + agtInfo + " - migrating request denied");
 
