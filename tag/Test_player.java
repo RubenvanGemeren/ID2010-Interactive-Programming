@@ -38,7 +38,7 @@ public class Test_player implements Serializable
   /**
    * Default sleep time so that we have time to track what it does.
    */
-  private long restraintSleepMs = 3000;
+  private long restraintSleepMs = 1000;
 
   /**
    * The jump count variable is incremented each time method topLevel
@@ -50,7 +50,7 @@ public class Test_player implements Serializable
    * The default sleep time between subsequent queries of the
    * rmiregistry.
    */
-  private long retrySleep = 20 * 1000; // 20 seconds
+  private long retrySleep = 10 * 1000; // 10 seconds
 
   /**
    * The debug flag controls the amount of diagnostic info we put out.
@@ -67,6 +67,10 @@ public class Test_player implements Serializable
    */
     private boolean willMigrate = false;
 
+  /**
+   * Current Bailiff where the player is located
+   */
+  private BailiffInterface currentBailiff;
 
   /**
    * Sets the id string of this Test Player.
@@ -188,9 +192,8 @@ public class Test_player implements Serializable
    * the Bailiff he is already in.
    */
   public void topLevel ()
-    throws
-      java.io.IOException
-  {
+          throws
+          java.io.IOException, NoSuchMethodException {
     jumpCount++;
 
     // Loop forever until we have successfully jumped to a Bailiff.
@@ -227,6 +230,11 @@ public class Test_player implements Serializable
       // - migrate to it, or if that fail, try another one
       while (!goodNames.isEmpty()) {
 
+        // If we are in a bailiff, figure out if we are tagged
+        if (currentBailiff != null) {
+          tagged = didIGetTagged(currentBailiff);
+        }
+
         // Prepare some state flags
         boolean noRegistry = false;
         boolean badName = false;
@@ -234,9 +242,9 @@ public class Test_player implements Serializable
         // Now, at least one possibly good Bailiff has been found.
         debugMsg("Found " + goodNames.size() + " Bailiffs");
 
-        // Change code to pick bailiff with players (not tagged player(s))
+        // Change code to pick bailiff with players (not tagged player(s)/player(s))
         // Randomly pick one of the good names
-        String name = goodNames.get((int)(goodNames.size() * Math.random()));
+        String name = chooseBailiff(goodNames);
 
         // try to get the current Bailiff
         try {
@@ -253,10 +261,10 @@ public class Test_player implements Serializable
             if (service instanceof BailiffInterface) {
 
               // Cast the service to a Bailiff
-              BailiffInterface currentBailiff = (BailiffInterface) service;
+              BailiffInterface chosenBailiff = (BailiffInterface) service;
 
-              // Check if the Bailiff has (tagged) players
-              willMigrate = !currentBailiff.hasTaggedPlayer();
+              // Determine if we will migrate to the selected Bailiff
+              willMigrate = willMigrateToBailiff(chosenBailiff);
 
               // Attempt to migrate to the selected Bailiff
               try {
@@ -264,20 +272,48 @@ public class Test_player implements Serializable
                 if (willMigrate) {
                   debugMsg("Trying to migrate");
 
-                  debugMsg("Letting the Bailiff know that I am migrating");
+                  // Set parameter for migration
+                  Boolean canMigrate = true;
 
-                  // Notify the Bailiff that we are leaving and ask if we can migrate
-                  Boolean canMigrate = currentBailiff.notify(this, "leaving");
+                  // If we are located at a Bailiff, notify it that we are leaving
+                  if (currentBailiff != null) {
+                    debugMsg("Letting the Bailiff know that I am migrating");
+
+                    // Lock the player before migrating
+                    currentBailiff.lock(externalId);
+
+                    tagged = didIGetTagged(currentBailiff);
+
+                    // Notify the Bailiff that we are leaving and ask if we can migrate
+                    canMigrate = currentBailiff.notify(this, "leaving");
+
+                    // Note: We only need to unlock the player if we are not allowed to migrate
+                    // If we are allowed to migrate, the player will be deleted from the Bailiff
+                    // thus not needing to be unlocked
+                  }
+
+//                  debugMsg("Letting the Bailiff know that I am migrating");
+
+//                  // Notify the Bailiff that we are leaving and ask if we can migrate
+//                  Boolean canMigrate = currentBailiff.notify(this, "leaving");
 
                   // If the Bailiff allows us to migrate, do so
                   if (canMigrate) {
-                    currentBailiff.migrate(this, "topLevel", new Object[]{}, tagged, externalId);
+                    // Before migrating, update our current Bailiff
+                    currentBailiff = chosenBailiff;
+
+                    chosenBailiff.migrate(this, "topLevel", new Object[]{}, tagged, externalId);
 
                     debugMsg("Has migrated");
 
                     return; // SUCCESS, we are done here
                   } else {
                     debugMsg("The Bailiff did not allow me to migrate");
+
+                    // Unlock the player before trying to migrate again,
+                    // this is not necessary if we are allowed to migrate
+                    currentBailiff.unlock(externalId);
+
                     // The Bailiff did not allow us to migrate, remove it from the list of good names
                     goodNames.clear();
                     badNames.clear();
@@ -319,6 +355,25 @@ public class Test_player implements Serializable
     } // for ever
   }   // topLevel
 
+  private boolean willMigrateToBailiff(BailiffInterface bailiff) throws RemoteException {
+    return true;
+//    // If player is tagged and the Bailiff has players, migrate
+//    if (tagged && bailiff.hasPlayers()) {
+//      return true;
+//    }
+//
+    // Else only migrate if the Bailiff has players and no tagged player
+//    return bailiff.hasPlayers() && !bailiff.hasTaggedPlayer();
+  }
+
+  private String chooseBailiff(ArrayList<String> goodNames) {
+    return goodNames.get((int)(goodNames.size() * Math.random()));
+  }
+
+  private Boolean didIGetTagged(BailiffInterface currentBailiff) throws RemoteException, NoSuchMethodException {
+    return currentBailiff.isTagged(externalId);
+  }
+
   /**
    * Prints commandline help.
    */
@@ -341,9 +396,8 @@ public class Test_player implements Serializable
   // =============================================================
   
   public static void main (String [] argv)
-    throws
-      java.io.IOException, ClassNotFoundException
-  {
+          throws
+          java.io.IOException, ClassNotFoundException, NoSuchMethodException {
 
     // Make a new Test Player and configure it from commandline arguments.
     
