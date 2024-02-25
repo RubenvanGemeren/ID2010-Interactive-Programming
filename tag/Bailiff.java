@@ -103,6 +103,7 @@ public class Bailiff
       // Print out the current status of the bailiff, including the list of players
       System.out.println("---- B a i l i f f s t a t u s ---- \n" +
               " Time: " + new Date() + "\n" +
+              " Players: " + agitatorMap.size() + "\n" +
               " Agitator map: " + playersInfo +
               " Has tagged player: " + hasTaggedPlayer + "\n" +
               "----------------------------------" + "\n");
@@ -371,6 +372,7 @@ public class Bailiff
 
           // remove the player from the map of players and agitators
           agitatorMap.remove(id);
+          debugMsg("Object removed from the list of players, current agitatorMap size: " + agitatorMap.size());
 
           // Show status of the bailiff
           debugStatus();
@@ -435,6 +437,7 @@ public class Bailiff
 
   /* ================ I s T a g g e d ================ */
     public Boolean isTagged(UUID id) throws RemoteException {
+        debugMsg("isTagged id=" + id + " - " + agitatorMap.get(id).isTaggedPlayer);
         return agitatorMap.get(id).isTaggedPlayer;
     }
 
