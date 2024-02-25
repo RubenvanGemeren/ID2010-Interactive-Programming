@@ -72,8 +72,11 @@ public class Bailiff
   // Map to store Agitator instances with the associated object as the key
   protected Map<UUID, AgitatorInfo> agitatorMap = new HashMap<>();
 
-    // Has tagged player
-    protected Boolean hasTaggedPlayer = false;
+  // Has tagged player
+  protected Boolean hasTaggedPlayer = false;
+
+  // Tag success rate
+  protected  Double tagSuccessRate = 0.3;
 
   /**
    * If debug is enabled, prints a message on stdout.
@@ -408,6 +411,9 @@ public class Bailiff
   /* ================ T a g P l a y e r ================ */
   public Boolean tagPlayer(UUID previousTaggedPlayer) throws RemoteException {
 
+    // Create a random number generator
+    Random random = new Random();
+
     debugMsg("tagPlayer previousTaggedPlayer=" + previousTaggedPlayer + " - " + agitatorMap.get(previousTaggedPlayer).tagged);
 
     // Check if there are any players
@@ -415,14 +421,18 @@ public class Bailiff
       return false;
     }
 
-    // Get the first player in the list of players that is not locked (and is not the previous tagged player)
+    // Get a random player in the list of players that is not locked (and is not the previous tagged player)
     UUID id = null;
     for (Map.Entry<UUID, AgitatorInfo> entry : agitatorMap.entrySet()) {
       UUID key = entry.getKey();
       AgitatorInfo value = entry.getValue();
       if (!value.isLocked && !value.tagged && key != previousTaggedPlayer) {
-        id = key;
-        break;
+        // Flip a (weighted) coin to determine if the player should be tagged
+        if (random.nextDouble() > tagSuccessRate) {
+          continue;
+        }
+          id = key;
+          break;
       }
     }
 
