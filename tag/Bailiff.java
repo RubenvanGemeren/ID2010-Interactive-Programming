@@ -115,14 +115,14 @@ public class Bailiff
     private UUID externalId;
     private  String name;
     private Agitator agitator;
-    private boolean isTaggedPlayer;
+    private boolean tagged;
     private boolean isLocked;
 
-    public AgitatorInfo(UUID externalId, String name, Agitator agitator, boolean isTaggedPlayer, boolean isLocked) {
+    public AgitatorInfo(UUID externalId, String name, Agitator agitator, boolean tagged, boolean isLocked) {
       this.externalId = externalId;
       this.name = name;
       this.agitator = agitator;
-      this.isTaggedPlayer = isTaggedPlayer;
+      this.tagged = tagged;
       this.isLocked = isLocked;
     }
 
@@ -134,7 +134,7 @@ public class Bailiff
               "External ID ='" + this.externalId + '\'' +
               ", Name ='" + this.name + '\'' +
               ", Agitator ='" + this.agitator + '\'' +
-              ", Tagged ='" + this.isTaggedPlayer + '\'' +
+              ", Tagged ='" + this.tagged + '\'' +
               ", Locked ='" + this.isLocked + '\'' +
               '}';
     }
@@ -407,13 +407,29 @@ public class Bailiff
 
   /* ================ T a g P l a y e r ================ */
   public Boolean tagPlayer(UUID previousTaggedPlayer) throws RemoteException {
+
+    debugMsg("tagPlayer previousTaggedPlayer=" + previousTaggedPlayer + " - " + agitatorMap.get(previousTaggedPlayer).tagged);
+
     // Check if there are any players
     if (agitatorMap.isEmpty()) {
       return false;
     }
 
-    // Get the first player in the list of players that is not locked
-    UUID id = agitatorMap.keySet().stream().filter(key -> !agitatorMap.get(key).isLocked).findFirst().orElse(null);
+    // Get the first player in the list of players that is not locked (and is not the previous tagged player)
+    UUID id = null;
+    for (Map.Entry<UUID, AgitatorInfo> entry : agitatorMap.entrySet()) {
+      UUID key = entry.getKey();
+      AgitatorInfo value = entry.getValue();
+      if (!value.isLocked && !value.tagged && key != previousTaggedPlayer) {
+        id = key;
+        break;
+      }
+    }
+
+    // If there are no players that are not locked, return false
+    if (id == null) {
+      return false;
+    }
 
     // Get the agitator from the agitatorMap
     AgitatorInfo agtInfo = agitatorMap.get(id);
@@ -424,21 +440,21 @@ public class Bailiff
     }
 
     // Set the player as the tagged player
-    agtInfo.isTaggedPlayer = true;
+    agtInfo.tagged = true;
 
     // Set the tagged player as the tagged player
     hasTaggedPlayer = true;
 
     // Remove tag from the previous tagged player
-    agitatorMap.get(previousTaggedPlayer).isTaggedPlayer = false;
+    agitatorMap.get(previousTaggedPlayer).tagged = false;
 
     return true;
   }
 
   /* ================ I s T a g g e d ================ */
     public Boolean isTagged(UUID id) throws RemoteException {
-        debugMsg("isTagged id=" + id + " - " + agitatorMap.get(id).isTaggedPlayer);
-        return agitatorMap.get(id).isTaggedPlayer;
+        debugMsg("isTagged id=" + id + " - " + agitatorMap.get(id).tagged);
+        return agitatorMap.get(id).tagged;
     }
 
   /* ================ L o c k ================ */
