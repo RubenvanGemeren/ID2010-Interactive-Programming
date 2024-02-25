@@ -263,6 +263,13 @@ public class Test_player implements Serializable
               // Cast the service to a Bailiff
               BailiffInterface chosenBailiff = (BailiffInterface) service;
 
+              // Before migrating to a new bailiff as a tagged player, try to tag a player at the current bailiff
+              // If this fails, we will try to migrate to a new bailiff as a (still) tagged player
+              // If the tagging is successful, we will migrate to a new bailiff as a non-tagged player
+              if (tagged && currentBailiff != null) {
+                tagged = !tryTagging(currentBailiff);
+              }
+
               // Determine if we will migrate to the selected Bailiff
               willMigrate = willMigrateToBailiff(chosenBailiff);
 
@@ -355,6 +362,13 @@ public class Test_player implements Serializable
     } // for ever
   }   // topLevel
 
+  private Boolean tryTagging(BailiffInterface currentBailiff) throws RemoteException, NoSuchMethodException {
+    // Ask the Bailiff to tag a player and return the result
+      debugMsg("Asking the Bailiff to tag a player");
+
+      return currentBailiff.tagPlayer(externalId);
+  }
+
   private boolean willMigrateToBailiff(BailiffInterface bailiff) throws RemoteException {
     return true;
 //    // If player is tagged and the Bailiff has players, migrate
@@ -424,26 +438,32 @@ public class Test_player implements Serializable
 	  state = 2;
 	else if (av.equals("-qs"))
 	  state = 3;
+    else if (av.equals("-tagged"))
+      state = 4;
 	else {
 	  System.err.println("Unknown commandline argument: " + av);
 	  return;
 	}
 	break;
-
       case 1:
-	dx.setId(av);
-	state = 0;
-	break;
+	    dx.setId(av);
+	    state = 0;
+	    break;
 
       case 2:
-	dx.setRestraintSleep(Long.parseLong(av));
-	state = 0;
-	break;
+        dx.setRestraintSleep(Long.parseLong(av));
+        state = 0;
+        break;
 
       case 3:
-	dx.setRetrySleep(Long.parseLong(av));
-	state = 0;
-	break;
+	    dx.setRetrySleep(Long.parseLong(av));
+	    state = 0;
+	    break;
+
+      case 4:
+        dx.tagged = Boolean.parseBoolean(av);
+        state = 0;
+        break;
       }	// switch
     }	// for all commandline arguments
 
