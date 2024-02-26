@@ -28,6 +28,10 @@ public interface BailiffInterface
     throws
       java.rmi.RemoteException;
 
+  public void updateTaggedPlayer()
+    throws
+      java.rmi.RemoteException;
+
   /**
    * Returns a property of the Bailiff.
    * @param key The case-insensitive property key to retrieve.
@@ -54,7 +58,7 @@ public interface BailiffInterface
    * the number of arguments is wrong or are of the wrong type).
    * 
    */
-  public void migrate (Object obj, String cb, Object [] args, Boolean isTaggedPlayer, UUID externalId)
+  public void migrate (Object obj, String cb, Object [] args,  String playerName, Boolean isTaggedPlayer, UUID externalId)
           throws
           java.rmi.RemoteException,
           java.lang.NoSuchMethodException;
@@ -86,4 +90,7 @@ public interface BailiffInterface
             java.rmi.RemoteException,
             java.lang.NoSuchMethodException;
 
+    public int getPlayerCount()
+        throws
+          java.rmi.RemoteException;
 }

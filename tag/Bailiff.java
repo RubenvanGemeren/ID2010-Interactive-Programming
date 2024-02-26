@@ -65,10 +65,6 @@ public class Bailiff
   // Registration name with the rmiregistry
   protected String serviceName = null;
 
-  // Present players
-//    protected ArrayList<UUID> players = new ArrayList<>();
-
-
   // Map to store Agitator instances with the associated object as the key
   protected Map<UUID, AgitatorInfo> agitatorMap = new HashMap<>();
 
@@ -93,6 +89,10 @@ public class Bailiff
    */
   protected void debugStatus () throws RemoteException {
     if (debug) {
+
+      // First update tagged player status
+      updateTaggedPlayer();
+
       // Create list of players info
       StringBuilder playersInfo = new StringBuilder();
 
@@ -100,13 +100,13 @@ public class Bailiff
       for (Map.Entry<UUID, AgitatorInfo> entry : agitatorMap.entrySet()) {
         UUID key = entry.getKey();
         AgitatorInfo value = entry.getValue();
-        playersInfo.append("Player: ").append(key).append(" - ").append(value).append("\n");
+        playersInfo.append("Player: ").append("\n").append(value).append("\n");
       }
 
       // Print out the current status of the bailiff, including the list of players
       System.out.println("---- B a i l i f f s t a t u s ---- \n" +
               " Time: " + new Date() + "\n" +
-              " Players: " + agitatorMap.size() + "\n" +
+              " Players: " + '\n' + agitatorMap.size() + "\n" +
               " Agitator map: " + playersInfo +
               " Has tagged player: " + hasTaggedPlayer + "\n" +
               "----------------------------------" + "\n");
@@ -133,13 +133,13 @@ public class Bailiff
     @Override
     public String toString() {
       // Customize the string representation as per your requirement
-      return "AgitatorInfo{" +
-              "External ID ='" + this.externalId + '\'' +
-              ", Name ='" + this.name + '\'' +
-              ", Agitator ='" + this.agitator + '\'' +
-              ", Tagged ='" + this.tagged + '\'' +
-              ", Locked ='" + this.isLocked + '\'' +
-              '}';
+      return "------ Player --------" + "\n" +
+//              "External ID ='" + this.externalId + '\'' +
+              "Name ='" + this.name + '\n' +
+//              ", Agitator ='" + this.agitator + '\'' +
+              "Locked ='" + this.isLocked + '\n' +
+              "! TAGGED ! ='" + this.tagged + '\n' +
+              "---------------------" + "\n";
     }
   }
 
@@ -245,6 +245,20 @@ public class Bailiff
     return !agitatorMap.isEmpty();
   }
 
+  // Check agitator map for tagged player
+  public void updateTaggedPlayer() throws java.rmi.RemoteException {
+    for (Map.Entry<UUID, AgitatorInfo> entry : agitatorMap.entrySet()) {
+      UUID key = entry.getKey();
+      AgitatorInfo value = entry.getValue();
+      if (value.tagged) {
+        hasTaggedPlayer = true;
+        return;
+      }
+    }
+    hasTaggedPlayer = false;
+  }
+
+  // Check agitator map for tagged player
   public Boolean hasTaggedPlayer() throws java.rmi.RemoteException {
     return hasTaggedPlayer;
   }
@@ -285,7 +299,7 @@ public class Bailiff
    * @throws NoSuchMethodException Thrown if the specified entry method
    * does not exist with the expected signature.
    */
-  public void migrate (Object obj, String cb, Object [] args, Boolean isTaggedPlayer, UUID externalId)
+  public void migrate (Object obj, String cb, Object [] args, String playerName, Boolean isTaggedPlayer, UUID externalId)
           throws
           java.rmi.RemoteException, NoSuchMethodException {
 
@@ -294,23 +308,16 @@ public class Bailiff
 			   cb,
 			   Arrays.toString(args)));
 
-    if (isTaggedPlayer) {
-        hasTaggedPlayer = true;
-    }
-
     // Create an Agitator instance and start it
     Agitator agt = new Agitator (externalId, obj, cb, args);
 
     // Create an AgitatorInfo instance to store the agitator and the object
-    AgitatorInfo agtInfo = new AgitatorInfo(agt.myId, obj.toString(), agt, isTaggedPlayer, false);
+    AgitatorInfo agtInfo = new AgitatorInfo(agt.myId, playerName, agt, isTaggedPlayer, false);
 
     // Check if the object is already in the list of players
     if (agitatorMap.containsKey(agt.myId)) {
       log.fine("Object already in the list of players");
     } else {
-
-      // Add the object to the list of players
-      // players.add(agt.myId);
 
       // Add the object to the map of players and agitators
       agitatorMap.put(agt.myId, agtInfo);
@@ -481,6 +488,11 @@ public class Bailiff
         // Unlock the object in question
         agitatorMap.get(id).isLocked = false;
       }
+    }
+
+    /* ================ P l a y e r C o u n t ================ */
+    public int getPlayerCount() throws RemoteException {
+        return agitatorMap.size();
     }
   /* ================ C o n s t r u c t o r ================ */
 
