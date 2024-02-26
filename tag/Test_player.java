@@ -16,8 +16,7 @@ import java.util.UUID;
  * must be implement the Serializable marker interface. Reference type
  * members that are not serializable should be declared as transient.
  */
-public class Test_player implements Serializable
-{
+public class Test_player implements Serializable {
   /**
    * List of viable Bailiff names
    */
@@ -33,12 +32,17 @@ public class Test_player implements Serializable
    */
   private String id = "anon";
 
+  /**
+   * Recognizable name of the player
+   */
+  private String playerName = "test_player";
+
   public UUID externalId = UUID.randomUUID();
 
   /**
    * Default sleep time so that we have time to track what it does.
    */
-  private long restraintSleepMs = 1000;
+  private long restraintSleepMs = 5000;
 
   /**
    * The jump count variable is incremented each time method topLevel
@@ -65,7 +69,7 @@ public class Test_player implements Serializable
   /**
    * If the player wants to migrate to a Bailiff
    */
-    private boolean willMigrate = false;
+  private boolean willMigrate = false;
 
   /**
    * Current Bailiff where the player is located
@@ -74,15 +78,27 @@ public class Test_player implements Serializable
 
   /**
    * Sets the id string of this Test Player.
+   *
    * @param id The id string. A null argument is replaced with the
-   * empty string.
+   *           empty string.
    */
   public void setId(String id) {
     this.id = (id != null) ? id : "";
   }
 
   /**
+   * Sets the name string of this Test Player.
+   *
+   * @param name The name string. A null argument is replaced with the
+   *           empty string.
+   */
+  public void setName(String name) {
+    this.playerName = (name != null) ? name : "test_player" + UUID.randomUUID();
+  }
+
+  /**
    * Sets the restraint sleep duration.
+   *
    * @param ms The number of milliseconds in restraint sleep.
    */
   public void setRestraintSleep(long ms) {
@@ -91,6 +107,7 @@ public class Test_player implements Serializable
 
   /**
    * Sets the query retry sleep duration.
+   *
    * @param ms The number of milliseconds between each query.
    */
   public void setRetrySleep(long ms) {
@@ -109,9 +126,10 @@ public class Test_player implements Serializable
    * Outputs a diagnostic message on standard output. This will be on
    * the host of the launching JVM before Test Player moves. Once he has migrated
    * to another Bailiff, the text will appear on the console of that Bailiff.
+   *
    * @param msg The message to print.
    */
-  protected void debugMsg (String msg) {
+  protected void debugMsg(String msg) {
     if (debug)
       System.out.printf("%s(%d):%s%n", id, jumpCount, msg);
   }
@@ -119,17 +137,19 @@ public class Test_player implements Serializable
   /**
    * Creates a new Test Player.
    */
-  public Test_player() {}
+  public Test_player() {
+  }
 
   /**
    * Sleep for the given number of milliseconds.
-   * @param ms  The number of milliseconds to sleep.
+   *
+   * @param ms The number of milliseconds to sleep.
    */
-  protected void snooze (long ms) {
+  protected void snooze(long ms) {
     try {
-      Thread.currentThread ().sleep (ms);
+      Thread.currentThread().sleep(ms);
+    } catch (InterruptedException e) {
     }
-    catch (InterruptedException e) {}
   }
 
   /**
@@ -143,7 +163,7 @@ public class Test_player implements Serializable
       Registry registry = LocateRegistry.getRegistry(null);
 
       // Ask for all registered services
-      String [] serviceNames = registry.list();
+      String[] serviceNames = registry.list();
 
       // Print the list of found services to the console
       debugMsg("All found services: " + String.join(", ", serviceNames));
@@ -155,7 +175,7 @@ public class Test_player implements Serializable
 
           // If the name already is on the bad list, ignore it
           if (badNames.contains(name))
-              continue;
+            continue;
 
           // If the name already is on the good list, ignore it
           if (goodNames.contains(name))
@@ -165,41 +185,40 @@ public class Test_player implements Serializable
           goodNames.add(name);
         }
       }
-      
-    }
-    catch (Exception e) {
+
+    } catch (Exception e) {
       debugMsg("Scanning for Bailiffs failed: " + e.toString());
     }
   }
-  
+
   /**
    * This is Test Player's main program once he is on his way. In short, he
    * goes into an infinite loop in which the only exit is a
    * successfull migrate to a Bailiff.
-   *
+   * <p>
    * for (;;) {
-   *
-   *   while no good Bailiffs are found
-   *     look for Bailiffs
-   *
-   *   while good Bailiffs are known
-   *     jump to a random Bailiff
-   *     or
-   *     update the lists of good and bad bailiffs
+   * <p>
+   * while no good Bailiffs are found
+   * look for Bailiffs
+   * <p>
+   * while good Bailiffs are known
+   * jump to a random Bailiff
+   * or
+   * update the lists of good and bad bailiffs
    * }
-   *
+   * <p>
    * Test Player has no concept of where he is, and may happily migrate to
    * the Bailiff he is already in.
    */
-  public void topLevel ()
+  public void topLevel()
           throws
           java.io.IOException, NoSuchMethodException {
     jumpCount++;
 
     // Loop forever until we have successfully jumped to a Bailiff.
-    for (;;) {
+    for (; ; ) {
 
-      long retryInterval = 0;	// incremented when no Bailiffs are found
+      long retryInterval = 0;    // incremented when no Bailiffs are found
 
       // Sleep a bit so that humans can keep up.
       debugMsg("Is here - entering restraint sleep.");
@@ -299,17 +318,12 @@ public class Test_player implements Serializable
                     // thus not needing to be unlocked
                   }
 
-//                  debugMsg("Letting the Bailiff know that I am migrating");
-
-//                  // Notify the Bailiff that we are leaving and ask if we can migrate
-//                  Boolean canMigrate = currentBailiff.notify(this, "leaving");
-
                   // If the Bailiff allows us to migrate, do so
                   if (canMigrate) {
                     // Before migrating, update our current Bailiff
                     currentBailiff = chosenBailiff;
 
-                    chosenBailiff.migrate(this, "topLevel", new Object[]{}, tagged, externalId);
+                    chosenBailiff.migrate(this, "topLevel", new Object[]{}, playerName, tagged, externalId);
 
                     debugMsg("Has migrated");
 
@@ -326,20 +340,16 @@ public class Test_player implements Serializable
                     badNames.clear();
                   }
                 }
-              }
-              catch (RemoteException rex) {
+              } catch (RemoteException rex) {
                 debugMsg(rex.toString());
                 badName = true;
               }
-            }
-            else
+            } else
               badName = true;
-          }
-          catch (Exception e) {
+          } catch (Exception e) {
             badName = true;
           }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
           noRegistry = true;
         }
 
@@ -349,14 +359,13 @@ public class Test_player implements Serializable
           debugMsg("No registry found - resetting name lists");
           goodNames.clear();
           badNames.clear();
-        }
-        else if (badName) {
+        } else if (badName) {
           debugMsg(String.format("Bad service name found: %s", name));
           goodNames.remove(name);
           badNames.add(name);
         }
 
-    }	// while candidates remain
+      }    // while candidates remain
 
       debugMsg("All Bailiffs failed.");
     } // for ever
@@ -364,11 +373,12 @@ public class Test_player implements Serializable
 
   private Boolean tryTagging(BailiffInterface currentBailiff) throws RemoteException, NoSuchMethodException {
     // Ask the Bailiff to tag a player and return the result
-      debugMsg("Asking the Bailiff to tag a player");
+    debugMsg("Asking the Bailiff to tag a player");
 
-      return currentBailiff.tagPlayer(externalId);
+    return currentBailiff.tagPlayer(externalId);
   }
 
+  // Not needed anymore since we are already checking if the Bailiff satisfies the conditions
   private boolean willMigrateToBailiff(BailiffInterface bailiff) throws RemoteException {
     return true;
 //    // If player is tagged and the Bailiff has players, migrate
@@ -380,8 +390,47 @@ public class Test_player implements Serializable
 //    return bailiff.hasPlayers() && !bailiff.hasTaggedPlayer();
   }
 
+  // Choose a Bailiff beneficial to the player
   private String chooseBailiff(ArrayList<String> goodNames) {
-    return goodNames.get((int)(goodNames.size() * Math.random()));
+
+    // If the player is tagged, choose a Bailiff with players. Loop until a Bailiff with players is found
+    for (String name : goodNames) {
+      try {
+        // Get the default RMI registry
+        Registry registry = LocateRegistry.getRegistry(null);
+
+        // Lookup the service name we selected
+        Remote service = registry.lookup(name);
+
+        // Verify it is what we want
+        if (service instanceof BailiffInterface) {
+
+          // Cast the service to a Bailiff
+          BailiffInterface chosenBailiff = (BailiffInterface) service;
+
+          // Get player count of the Bailiff
+          int playerCount = chosenBailiff.getPlayerCount();
+
+          // Get if the Bailiff has a tagged player
+          boolean taggedPlayerInBailiff = chosenBailiff.hasTaggedPlayer();
+
+          // If the p§layer is tagged and the Bailiff has players, migrate
+          if (!taggedPlayerInBailiff && playerCount > 1 && tagged) {
+            return name;
+          }
+
+          // If the player is not tagged and the Bailiff has no tagged player, migrate
+          if (!taggedPlayerInBailiff && playerCount > 0 && !tagged) {
+            return name;
+          }
+        }
+      } catch (Exception e) {
+        // If the lookup fails, ignore the Bailiff
+        debugMsg("Failed to lookup Bailiff: " + e.toString());
+      }
+    }
+    // If no suitable Bailiff is found, return a random Bailiff
+    return goodNames.get((int) (Math.random() * goodNames.size()));
   }
 
   private Boolean didIGetTagged(BailiffInterface currentBailiff) throws RemoteException, NoSuchMethodException {
@@ -447,6 +496,7 @@ public class Test_player implements Serializable
 	break;
       case 1:
 	    dx.setId(av);
+        dx.setName(av);
 	    state = 0;
 	    break;
 
