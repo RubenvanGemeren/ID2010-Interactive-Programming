@@ -380,13 +380,7 @@ public class Test_player implements Serializable {
 
   // Not needed anymore since we are already checking if the Bailiff satisfies the conditions
   private boolean willMigrateToBailiff(BailiffInterface bailiff) throws RemoteException {
-    // If player is tagged and the Bailiff has players, migrate
-    if (tagged && bailiff.hasPlayers()) {
-      return true;
-    }
-
-    // Else only migrate if the Bailiff has players and no tagged player
-    return bailiff.hasPlayers() && !bailiff.hasTaggedPlayer();
+    return true;
   }
 
   // Choose a Bailiff beneficial to the player
@@ -419,7 +413,7 @@ public class Test_player implements Serializable {
           }
 
           // If the player is not tagged and the Bailiff has no tagged player, migrate
-          if (!taggedPlayerInBailiff && playerCount > 0 && !tagged) {
+          if (!taggedPlayerInBailiff && playerCount >= 0 && !tagged) {
             return name;
           }
         }
