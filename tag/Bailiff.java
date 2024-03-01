@@ -338,18 +338,11 @@ public class Bailiff
 
     // Cast the object to the correct class (only for testing purposes only)
     UUID id = null;
-    switch (obj.getClass().getName()) {
-      case "Test_player_it":
-        Test_player_it testPlayerIt = (Test_player_it) obj;
 
-        // Get the UUID of the object
-        id = testPlayerIt.externalId;
-      default:
-        Test_player testPlayer = (Test_player) obj;
+    Test_player testPlayer = (Test_player) obj;
 
-        // Get the UUID of the object
-        id = testPlayer.externalId;
-    }
+    // Get the UUID of the object
+    id = testPlayer.externalId;
 
     // Get the UUID of the object
     // UUID id = testPlayer.externalId;
