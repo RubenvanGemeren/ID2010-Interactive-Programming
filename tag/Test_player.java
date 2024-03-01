@@ -41,8 +41,14 @@ public class Test_player implements Serializable {
 
   /**
    * Default sleep time so that we have time to track what it does.
+   * When tagged player, the sleep time is decreased to 1 second.
    */
-  private long restraintSleepMs = 5000;
+    private long restraintSleepMs = 5000; // 5 seconds
+
+  /**
+    * Default sleep time for tagged player
+   */
+    private long restraintSleepMsTagged = 1000; // 1 second
 
   /**
    * The jump count variable is incremented each time method topLevel
@@ -222,7 +228,11 @@ public class Test_player implements Serializable {
 
       // Sleep a bit so that humans can keep up.
       debugMsg("Is here - entering restraint sleep.");
-      snooze(restraintSleepMs);
+      if (tagged) {
+        snooze(restraintSleepMsTagged);
+      } else{
+        snooze(restraintSleepMs);
+      }
       debugMsg("Leaving restraint sleep.");
 
       // Try to find Bailiffs.
