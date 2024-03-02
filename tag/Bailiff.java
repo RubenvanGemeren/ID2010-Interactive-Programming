@@ -98,20 +98,24 @@ public class Bailiff
       for (Map.Entry<UUID, AgitatorInfo> entry : agitatorMap.entrySet()) {
         UUID key = entry.getKey();
         AgitatorInfo value = entry.getValue();
-        playersInfo.append("Player: ").append("\n").append(value).append("\n");
+        playersInfo.append("\n").append(value);
       }
 
       // Clear the console initially
-      System.out.println("\033[H\033[2J");
+//      System.out.println("\033[H\033[2J");
 
-      // Print out the current status of the bailiff, including the list of players
+      String color = this.hasTaggedPlayer ? "\u001B[31m" : "\u001B[32m"; // Red if tagged is true, green if false
+
+
+    // Print out the current status of the bailiff, including the list of players
       System.out.println("---- B a i l i f f s t a t u s ----");
       System.out.println(" Time: " + new Date());
-      System.out.println(" Players: ");
-      System.out.println(agitatorMap.size());
+      System.out.println(" Players: " + agitatorMap.size());
       System.out.println(" Agitator map: " + playersInfo);
-      System.out.println(" Has tagged player: " + hasTaggedPlayer);
+      System.out.println(" Has tagged player: " + color + hasTaggedPlayer + "\u001B[0m");
       System.out.println("----------------------------------");
+      // reset all colors
+      System.out.print("\u001B[0m");
   }
 
   // Custom class to encapsulate agitator and object information
@@ -133,14 +137,18 @@ public class Bailiff
     // In the AgitatorInfo class
     @Override
     public String toString() {
+      String color = this.tagged ? "\u001B[31m" : "\u001B[32m"; // Red if tagged is true, green if false
+
       // Customize the string representation as per your requirement
       return "------ Player --------" + "\n" +
 //              "External ID ='" + this.externalId + '\'' +
               "Name ='" + this.name + '\n' +
 //              ", Agitator ='" + this.agitator + '\'' +
               "Locked ='" + this.isLocked + '\n' +
-              "! TAGGED ! ='" + this.tagged + '\n' +
-              "---------------------" + "\n";
+              "tagged='" + color + this.tagged + "\u001B[0m" + '\n' +
+              "---------------------" + "\n"+
+              // reset all colors
+              "\u001B[0m";
     }
   }
 
