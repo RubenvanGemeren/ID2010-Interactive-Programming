@@ -38,7 +38,7 @@ public class Bailiff
     BailiffInterface // for clients
 {
   // When debug is true, trace and diagnostic messages are printed.
-  protected boolean debug = true;
+  protected boolean debug = false;
 
   // The java.util.logging.Logger is provided for tracking and
   // forensic analysis.
@@ -88,8 +88,6 @@ public class Bailiff
    * @s The message string
    */
   protected void debugStatus () throws RemoteException {
-    if (debug) {
-
       // First update tagged player status
       updateTaggedPlayer();
 
@@ -103,17 +101,20 @@ public class Bailiff
         playersInfo.append("Player: ").append("\n").append(value).append("\n");
       }
 
+      // Clear the console initially
+      System.out.println("\033[H\033[2J");
+
       // Print out the current status of the bailiff, including the list of players
-      System.out.println("---- B a i l i f f s t a t u s ---- \n" +
-              " Time: " + new Date() + "\n" +
-              " Players: " + '\n' + agitatorMap.size() + "\n" +
-              " Agitator map: " + playersInfo +
-              " Has tagged player: " + hasTaggedPlayer + "\n" +
-              "----------------------------------" + "\n");
-    }
+      System.out.println("---- B a i l i f f s t a t u s ----");
+      System.out.println(" Time: " + new Date());
+      System.out.println(" Players: ");
+      System.out.println(agitatorMap.size());
+      System.out.println(" Agitator map: " + playersInfo);
+      System.out.println(" Has tagged player: " + hasTaggedPlayer);
+      System.out.println("----------------------------------");
   }
 
-  // Custom class to encapsulate multiple items
+  // Custom class to encapsulate agitator and object information
   public class AgitatorInfo {
     private UUID externalId;
     private  String name;
