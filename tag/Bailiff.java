@@ -6,6 +6,8 @@ import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import java.util.logging.Level;
@@ -74,6 +76,8 @@ public class Bailiff
   // Tag success rate
   protected  Double tagSuccessRate = 0.3;
 
+  protected String lastTag = "";
+
   /**
    * If debug is enabled, prints a message on stdout.
    * @s The message string
@@ -102,7 +106,7 @@ public class Bailiff
       }
 
       // Clear the console initially
-//      System.out.println("\033[H\033[2J");
+      System.out.println("\033[H\033[2J");
 
       String color = this.hasTaggedPlayer ? "\u001B[31m" : "\u001B[32m"; // Red if tagged is true, green if false
 
@@ -113,6 +117,7 @@ public class Bailiff
       System.out.println(" Players: " + agitatorMap.size());
       System.out.println(" Agitator map: " + playersInfo);
       System.out.println(" Has tagged player: " + color + hasTaggedPlayer + "\u001B[0m");
+      System.out.println(" Last tag: " + lastTag);
       System.out.println("----------------------------------");
       // reset all colors
       System.out.print("\u001B[0m");
@@ -460,6 +465,15 @@ public class Bailiff
 
     // Set the player as the tagged player
     agtInfo.tagged = true;
+
+    // Define a DateTimeFormatter
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    // Format the current time using the formatter
+    String formattedTime = LocalTime.now().format(formatter);
+
+    // Update 'last tag' value with name of previous tagged player and new tagged player and current time
+    lastTag = formattedTime + " " + "\u001b[33m" + agitatorMap.get(previousTaggedPlayer).name + "\u001B[0m" + " ---tagged---> " + "\u001b[31m" + agtInfo.name + "\u001B[0m";
 
     // Set the tagged player as the tagged player
     hasTaggedPlayer = true;
