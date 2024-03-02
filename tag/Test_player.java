@@ -43,12 +43,12 @@ public class Test_player implements Serializable {
    * Default sleep time so that we have time to track what it does.
    * When tagged player, the sleep time is decreased to 1 second.
    */
-    private long restraintSleepMs = 5000; // 5 seconds
+    private long restraintSleepMs = 3000; // 5 seconds
 
   /**
     * Default sleep time for tagged player
    */
-    private long restraintSleepMsTagged = 1000; // 1 second
+    private long restraintSleepMsTagged = 2000; // 1 second
 
   /**
    * The jump count variable is incremented each time method topLevel
