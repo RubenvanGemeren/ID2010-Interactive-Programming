@@ -136,8 +136,9 @@ public class Test_player implements Serializable {
    * @param msg The message to print.
    */
   protected void debugMsg(String msg) {
-    if (debug)
+    if (debug) {
       System.out.printf("%s(%d):%s%n", id, jumpCount, msg);
+    }
   }
 
   /**
