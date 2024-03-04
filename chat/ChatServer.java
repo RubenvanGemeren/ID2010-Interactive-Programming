@@ -213,7 +213,7 @@ public class ChatServer
             try {
                 String clientName = rel.getName();
                 clientNames.remove(clientName);
-                say(clientName + "disconnected");
+                say(clientName + " disconnected");
             } catch (RemoteException e) {
                 System.out.println("Can't remove user from list of current users");
             }

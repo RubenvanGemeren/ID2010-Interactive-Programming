@@ -17,13 +17,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Vector;
-
-import java.util.Timer;
-import java.util.TimerTask;
-
+import java.util.*;
 
 /**
  * This class implements the ChatClient application.
@@ -71,6 +65,7 @@ public class ChatClient
      */
     protected Integer timeOut = 120;
 
+    protected HashSet<String> blockedUsers;
 
     protected Boolean isRunning = false;
 
@@ -89,6 +84,7 @@ public class ChatClient
      * Creates a new ChatClient instance.
      */
     public ChatClient() throws RemoteException {
+        blockedUsers = new HashSet<>();
         scanForChatServers();
     }
 
@@ -137,8 +133,10 @@ public class ChatClient
             if (waitingForNameFromServer){
                 getNameFromServer(chat);
             }
-            System.out.println(chat.getSequenceNumber() + " : " +
-                    chat.getText());
+            rename(chat);
+            if (!isBlocked(chat)) {
+                System.out.println(chat.getSequenceNumber() + " : " + chat.getText());
+            }
         }
     }
 
@@ -363,7 +361,10 @@ public class ChatClient
             ".quit              Exit the client",
             ".help              This text",
             ".users             Lists all current members of the chat.",
-            ".myname            Prints your name in the chat"
+            ".myname            Prints your name in the chat",
+            ".block <name>      Blocks the user with this name",
+            ".unblock <name>    Unblocks this user if he was blocked before",
+            ".listblock         List all currently blocked users"
     };
 
     /**
@@ -462,6 +463,50 @@ public class ChatClient
      * user commands or sends the text to the ChatServer (when
      * connected).
      */
+
+    protected void blockUser(String user){
+        boolean added = blockedUsers.add(user.trim());
+        if (added) {
+            System.out.println(user + " is now blocked");
+        }
+    }
+
+    protected void unblockUser(String user){
+        boolean removed = blockedUsers.remove(user.trim());
+        if (removed){
+            System.out.println(user + " is not blocked anymore");
+        }
+    }
+
+    protected void listBlockUser(){
+        System.out.println("Blocked users:");
+        for (String user: blockedUsers){
+            System.out.println(user);
+        }
+    }
+
+    protected boolean isBlocked(String user){
+        return blockedUsers.contains(user.trim());
+    }
+
+    protected boolean isBlocked(ChatNotification chat){
+        return isBlocked(chat.getText().split(": ")[0]);
+    }
+
+    protected void rename(ChatNotification chat){
+        boolean renamed = chat.getText().startsWith("Username changed from: ");
+        if (renamed){
+            String[] splitted = chat.getText().split(": ");
+            String oldName = splitted[1].substring(0, splitted[1].length() - 3);
+            String newName = splitted[2];
+            if (isBlocked(oldName)){
+                blockedUsers.remove(oldName);
+                blockedUsers.add(newName);
+                System.out.println("A blocked user changed his username, changed blocked user from " + oldName + " to " + newName);
+            }
+        }
+    }
+
     protected void readLoop() {
 
         boolean halted = false;
@@ -541,6 +586,15 @@ public class ChatClient
                     isAFK = false;
                 } else if ("myname".startsWith(verb)) {
                     System.out.println(myName);
+                    isAFK = false;
+                } else if ("block".startsWith(verb)){
+                    blockUser(stringJoin(argv, 1, " "));
+                    isAFK = false;
+                } else if ("unblock".startsWith(verb)){
+                    unblockUser(stringJoin(argv, 1, " "));
+                    isAFK = false;
+                } else if ("listblock".startsWith(verb)){
+                    listBlockUser();
                     isAFK = false;
                 } else {
                     System.out.println("[" + verb + ": unknown command]");
