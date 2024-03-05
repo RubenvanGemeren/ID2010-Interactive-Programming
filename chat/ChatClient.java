@@ -56,16 +56,17 @@ public class ChatClient
      * The user's current status. If true, the user is marked as away
      * from keyboard.
      */
-    protected Boolean isAFK = false;
 
     /**
      * This is the time-out value for the user's status. If the user
      * does not send any messages for this many seconds, the user is
      * marked as away from keyboard.
      */
-    protected Integer timeOut = 120;
+    protected final static Integer timeOut = 30;
 
     protected HashSet<String> blockedUsers;
+
+    protected boolean requestUsers = false;
 
     protected Boolean isRunning = false;
 
@@ -133,9 +134,11 @@ public class ChatClient
             if (waitingForNameFromServer){
                 getNameFromServer(chat);
             }
-            rename(chat);
-            if (!isBlocked(chat)) {
-                System.out.println(chat.getSequenceNumber() + " : " + chat.getText());
+            if (!listUsers(chat)){
+                rename(chat);
+                if (!isBlocked(chat)) {
+                    System.out.println(chat.getSequenceNumber() + " : " + chat.getText());
+                }
             }
         }
     }
@@ -360,11 +363,10 @@ public class ChatClient
             ".disconnect        Break the connection to the server",
             ".quit              Exit the client",
             ".help              This text",
-            ".users             Lists all current members of the chat.",
+            ".users             Lists all current members of the chat and if they're blocked.",
             ".myname            Prints your name in the chat",
             ".block <name>      Blocks the user with this name",
             ".unblock <name>    Unblocks this user if he was blocked before",
-            ".listblock         List all currently blocked users"
     };
 
     /**
@@ -405,33 +407,7 @@ public class ChatClient
         return sb.toString();
     }
 
-    protected void setAFK(Boolean status) {
-        isAFK = status;
-    }
-
-    protected Boolean getAFK() {
-        return isAFK;
-    }
-
-    // Method to find out if the timer is cancelled or not
-    protected Boolean isCancelled(Timer timer) {
-        return timer != null && timer.purge() > 0;
-    }
-
-    protected void cancelTimer() {
-        if (isRunning) {
-            System.out.println("Timer is already running. Timer cancelled.");
-            timer.cancel();
-        }
-
-    }
-
     protected void runTimer() {
-        if (getAFK()) {
-            System.out.println("Client is already afk. Timer cancelled.");
-            return;
-        }
-
         if (isRunning) {
             // If the timer is already running, cancel the current task
             task.cancel();
@@ -447,7 +423,6 @@ public class ChatClient
                 } else {
                     System.out.println("Timer expired after " + timeOut + " seconds. Changing status to AFK.");
                 }
-                setAFK(true);
                 isRunning = false; // Reset the running flag
             }
         };
@@ -478,10 +453,24 @@ public class ChatClient
         }
     }
 
-    protected void listBlockUser(){
-        System.out.println("Blocked users:");
-        for (String user: blockedUsers){
-            System.out.println(user);
+    protected boolean listUsers(ChatNotification chat){
+        if (chat.getText().startsWith(".users\nCurrent users: ")){
+            if (!requestUsers){
+                return true;
+            }
+            String[] users = chat.getText().split("\n");
+            users = Arrays.copyOfRange(users, 2, users.length);
+            System.out.println("Current users: ");
+            for (String user: users){
+                if (blockedUsers.contains(user.trim())){
+                    System.out.println(user + " (blocked)");
+                } else {
+                    System.out.println(user);
+                }
+            }
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -522,9 +511,8 @@ public class ChatClient
             System.out.print("Client> ");
             System.out.flush();
             String buf = null;
-            if (!getAFK()) {
-                runTimer();
-            }
+            runTimer();
+
             try {
                 buf = d.readLine();
             } catch (IOException iox) {
@@ -561,48 +549,34 @@ public class ChatClient
 
                 if ("quit".startsWith(verb)) {
                     halted = true;
-                    isAFK = false;
                 } else if ("connect".startsWith(verb)) {
                     connectToChat(stringJoin(argv, 1, " "));
-                    isAFK = false;
                 } else if ("disconnect".startsWith(verb)) {
                     userDisconnect();
-                    isAFK = false;
                 } else if ("list".startsWith(verb)) {
                     listServers();
-                    isAFK = false;
                 } else if ("name".startsWith(verb)) {
                     setName(stringJoin(argv, 1, " "));
-                    isAFK = false;
                 } else if ("help".startsWith(verb)) {
                     showHelp(argv);
-                    isAFK = false;
                 } else if ("users".startsWith(verb)) {
                     if (myServer != null) {
+                        requestUsers = true;
                         sendToChat(arg);
                     } else {
                         System.out.println("Please connect to a server before using this command.");
                     }
-                    isAFK = false;
                 } else if ("myname".startsWith(verb)) {
                     System.out.println(myName);
-                    isAFK = false;
                 } else if ("block".startsWith(verb)){
                     blockUser(stringJoin(argv, 1, " "));
-                    isAFK = false;
                 } else if ("unblock".startsWith(verb)){
                     unblockUser(stringJoin(argv, 1, " "));
-                    isAFK = false;
-                } else if ("listblock".startsWith(verb)){
-                    listBlockUser();
-                    isAFK = false;
                 } else {
                     System.out.println("[" + verb + ": unknown command]");
-                    isAFK = false;
                 }
             } else if (0 < arg.length()) {
                 sendToChat(myName + ": " + arg);
-                isAFK = false;
             }
 
         } // while not halted

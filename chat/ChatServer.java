@@ -260,7 +260,7 @@ public class ChatServer
             if (msg.split(": ", 2)[0].equalsIgnoreCase("Username changed from")) {
                 msg = changeClientName(msg, false);
             } else if (msg.equalsIgnoreCase(".users")) {
-                msg += "\n Current users: ";
+                msg = ".users\nCurrent users: ";
                 for (String user : clientNames) {
                     msg += "\n" + user;
                 }
