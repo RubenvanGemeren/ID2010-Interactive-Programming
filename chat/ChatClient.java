@@ -236,9 +236,9 @@ public class ChatClient
             // Verify that it is indeed what we expect
 
             if (service instanceof ChatServerInterface) {
+                waitingForNameFromServer = true;
                 myServer = (ChatServerInterface) service;
                 myServer.register(this);
-                waitingForNameFromServer = true;
                 System.out.printf("[Connected to %s]\n", selectedServiceName);
             }
         } catch (Exception e) {
@@ -273,8 +273,8 @@ public class ChatClient
 
         if (myServer != null) {
             try {
-                myServer.say("Username changed from: " + oldName + " to: " + myName);
                 waitingForNameFromServer = true;
+                myServer.say("Username changed from: " + oldName + " to: " + myName);
             } catch (RemoteException e) {
                 System.out.println("[Sending to server failed]");
             }

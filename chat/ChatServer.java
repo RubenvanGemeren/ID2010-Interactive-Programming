@@ -238,7 +238,6 @@ public class ChatServer
             }
             message = msg;
         }
-        System.out.println("maybe new Name: newName");
         if (clientNames.contains(newName)) {
             int postfix = 1;
             while (clientNames.contains(newName + postfix)) {
