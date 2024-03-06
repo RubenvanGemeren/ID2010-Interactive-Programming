@@ -122,26 +122,6 @@ public class ChatClient
 
     /* ***** Interface RemoteEventListener ***** */
 
-    /**
-     * The ChatServer we are registered with (connected to) calls this
-     * method to notify us of a new chat message.
-     *
-     * @param rev The remote event that is the notification.
-     */
-    public void notify(RemoteEvent rev) throws RemoteException {
-        if (rev instanceof ChatNotification) {
-            ChatNotification chat = (ChatNotification) rev;
-            if (waitingForNameFromServer){
-                getNameFromServer(chat);
-            }
-            if (!listUsers(chat)){
-                rename(chat);
-                if (!isBlocked(chat)) {
-                    System.out.println(chat.getSequenceNumber() + " : " + chat.getText());
-                }
-            }
-        }
-    }
 
     /* *** ChatClient *** */
 
@@ -369,133 +349,6 @@ public class ChatClient
             ".unblock <name>    Unblocks this user if he was blocked before",
     };
 
-    /**
-     * Implements the '.help' user command.
-     *
-     * @param argv Reserved for future used (e.g. '.help connect').
-     */
-    protected void showHelp(String[] argv) {
-        System.out.println("[" + versionString + "]");
-        for (int i = 0; i < cmdHelp.length; i++) {
-            System.out.println("[" + cmdHelp[i] + "]");
-        }
-    }
-
-    /**
-     * Creates a new string which is the concatenation of the elements
-     * in a string array, joined around a given delimiter string. This
-     * is slightly different from String.join() in that this method can
-     * start from any position in the array.
-     *
-     * @param sa         The string array to join together.
-     * @param firstIndex The index of the first element in sa to consider.
-     * @param delimiter  Delimiter string between elements in sa, or null.
-     * @return The concatenated result or at least the empty string.
-     */
-    protected String stringJoin(String[] sa, int firstIndex, String delimiter) {
-        StringBuilder sb = new StringBuilder();
-        String delim = (delimiter == null) ? "" : delimiter;
-
-        if (sa != null) {
-            if (firstIndex < sa.length) {
-                sb.append(sa[firstIndex]);
-                for (int i = firstIndex + 1; i < sa.length; i++)
-                    sb.append(delim).append(sa[i]);
-            }
-        }
-
-        return sb.toString();
-    }
-
-    protected void runTimer() {
-        if (isRunning) {
-            // If the timer is already running, cancel the current task
-            task.cancel();
-        }
-
-        // Schedule a new task
-        task = new TimerTask() {
-            @Override
-            public void run() {
-
-                if (myServer != null) {
-                    sendToChat(myName + " is now AFK.");
-                } else {
-                    System.out.println("Timer expired after " + timeOut + " seconds. Changing status to AFK.");
-                }
-                isRunning = false; // Reset the running flag
-            }
-        };
-
-        // Schedule the task with the specified timeout
-        timer.schedule(task, timeOut * 1000); // Convert seconds to milliseconds
-        isRunning = true;
-    }
-
-    /**
-     * The user command interpreter. Commands are read from standard
-     * input, parsed and dispatched to methods that either implement
-     * user commands or sends the text to the ChatServer (when
-     * connected).
-     */
-
-    protected void blockUser(String user){
-        boolean added = blockedUsers.add(user.trim());
-        if (added) {
-            System.out.println(user + " is now blocked");
-        }
-    }
-
-    protected void unblockUser(String user){
-        boolean removed = blockedUsers.remove(user.trim());
-        if (removed){
-            System.out.println(user + " is not blocked anymore");
-        }
-    }
-
-    protected boolean listUsers(ChatNotification chat){
-        if (chat.getText().startsWith(".users\nCurrent users: ")){
-            if (!requestUsers){
-                return true;
-            }
-            String[] users = chat.getText().split("\n");
-            users = Arrays.copyOfRange(users, 2, users.length);
-            System.out.println("Current users: ");
-            for (String user: users){
-                if (blockedUsers.contains(user.trim())){
-                    System.out.println(user + " (blocked)");
-                } else {
-                    System.out.println(user);
-                }
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    protected boolean isBlocked(String user){
-        return blockedUsers.contains(user.trim());
-    }
-
-    protected boolean isBlocked(ChatNotification chat){
-        return isBlocked(chat.getText().split(": ")[0]);
-    }
-
-    protected void rename(ChatNotification chat){
-        boolean renamed = chat.getText().startsWith("Username changed from: ");
-        if (renamed){
-            String[] splitted = chat.getText().split(": ");
-            String oldName = splitted[1].substring(0, splitted[1].length() - 3);
-            String newName = splitted[2];
-            if (isBlocked(oldName)){
-                blockedUsers.remove(oldName);
-                blockedUsers.add(newName);
-                System.out.println("A blocked user changed his username, changed blocked user from " + oldName + " to " + newName);
-            }
-        }
-    }
-
     protected void readLoop() {
 
         boolean halted = false;
@@ -588,6 +441,156 @@ public class ChatClient
         System.out.println("[Done]");
 
     }
+
+    protected void blockUser(String user){
+        boolean added = blockedUsers.add(user.trim());
+        if (added) {
+            System.out.println(user + " is now blocked");
+        }
+    }
+
+    protected void unblockUser(String user){
+        boolean removed = blockedUsers.remove(user.trim());
+        if (removed){
+            System.out.println(user + " is not blocked anymore");
+        }
+    }
+
+
+    /**
+     * The ChatServer we are registered with (connected to) calls this
+     * method to notify us of a new chat message.
+     *
+     * @param rev The remote event that is the notification.
+     */
+    public void notify(RemoteEvent rev) throws RemoteException {
+        if (rev instanceof ChatNotification) {
+            ChatNotification chat = (ChatNotification) rev;
+            if (waitingForNameFromServer){
+                getNameFromServer(chat);
+            }
+            if (!listUsers(chat)){
+                rename(chat);
+                if (!isBlocked(chat)) {
+                    System.out.println(chat.getSequenceNumber() + " : " + chat.getText());
+                }
+            }
+        }
+    }
+
+    protected void rename(ChatNotification chat){
+        boolean renamed = chat.getText().startsWith("Username changed from: ");
+        if (renamed){
+            String[] splitted = chat.getText().split(": ");
+            String oldName = splitted[1].substring(0, splitted[1].length() - 3);
+            String newName = splitted[2];
+            if (isBlocked(oldName)){
+                blockedUsers.remove(oldName);
+                blockedUsers.add(newName);
+                System.out.println("A blocked user changed his username, changed blocked user from " + oldName + " to " + newName);
+            }
+        }
+    }
+
+    protected boolean listUsers(ChatNotification chat){
+        if (chat.getText().startsWith(".users\nCurrent users: ")){
+            if (!requestUsers){
+                return true;
+            }
+            String[] users = chat.getText().split("\n");
+            users = Arrays.copyOfRange(users, 2, users.length);
+            System.out.println("Current users: ");
+            for (String user: users){
+                if (blockedUsers.contains(user.trim())){
+                    System.out.println(user + " (blocked)");
+                } else {
+                    System.out.println(user);
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    protected void runTimer() {
+        if (isRunning) {
+            // If the timer is already running, cancel the current task
+            task.cancel();
+        }
+
+        // Schedule a new task
+        task = new TimerTask() {
+            @Override
+            public void run() {
+
+                if (myServer != null) {
+                    sendToChat(myName + " is now AFK.");
+                } else {
+                    System.out.println("Timer expired after " + timeOut + " seconds. Changing status to AFK.");
+                }
+                isRunning = false; // Reset the running flag
+            }
+        };
+
+        // Schedule the task with the specified timeout
+        timer.schedule(task, timeOut * 1000); // Convert seconds to milliseconds
+        isRunning = true;
+    }
+
+    /**
+     * Implements the '.help' user command.
+     *
+     * @param argv Reserved for future used (e.g. '.help connect').
+     */
+    protected void showHelp(String[] argv) {
+        System.out.println("[" + versionString + "]");
+        for (int i = 0; i < cmdHelp.length; i++) {
+            System.out.println("[" + cmdHelp[i] + "]");
+        }
+    }
+
+    /**
+     * Creates a new string which is the concatenation of the elements
+     * in a string array, joined around a given delimiter string. This
+     * is slightly different from String.join() in that this method can
+     * start from any position in the array.
+     *
+     * @param sa         The string array to join together.
+     * @param firstIndex The index of the first element in sa to consider.
+     * @param delimiter  Delimiter string between elements in sa, or null.
+     * @return The concatenated result or at least the empty string.
+     */
+    protected String stringJoin(String[] sa, int firstIndex, String delimiter) {
+        StringBuilder sb = new StringBuilder();
+        String delim = (delimiter == null) ? "" : delimiter;
+
+        if (sa != null) {
+            if (firstIndex < sa.length) {
+                sb.append(sa[firstIndex]);
+                for (int i = firstIndex + 1; i < sa.length; i++)
+                    sb.append(delim).append(sa[i]);
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * The user command interpreter. Commands are read from standard
+     * input, parsed and dispatched to methods that either implement
+     * user commands or sends the text to the ChatServer (when
+     * connected).
+     */
+
+    protected boolean isBlocked(String user){
+        return blockedUsers.contains(user.trim());
+    }
+
+    protected boolean isBlocked(ChatNotification chat){
+        return isBlocked(chat.getText().split(": ")[0]);
+    }
+
 
     // The main method.
 
